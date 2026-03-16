@@ -1,39 +1,190 @@
-<!-- 
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Nucleas
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages). 
+**High-performance, fine-grained reactive state for Dart & Flutter.**
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages). 
--->
+Nucleas is a signal-based reactive runtime designed for predictable updates, extremely low overhead, minimal allocations, and deterministic execution.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+---
 
-## Features
+## Installation
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Add `nucleas` to your `pubspec.yaml`:
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder. 
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  nucleas: ^1.0.0
 ```
 
-## Additional information
+Then run:
 
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
+```bash
+dart pub get
+```
+
+---
+
+## Core Concepts
+
+Nucleas is built on three primitives.
+
+### Atom
+
+An **Atom** is the smallest unit of mutable reactive state.
+
+```dart
+final counter = Atom<int>(0);
+
+counter.update((c) => c + 1);
+
+print(counter.value()); // 1
+```
+
+All mutations go through `update`, which accepts a function that receives the current value and returns the next one. If the new value is identical or equal to the old one, the update is skipped entirely — no downstream propagation occurs.
+
+### Computed
+
+A **Computed** derives its value from other reactive nodes. It is **lazy** and **cached** — the compute function only re-runs when a dependency has changed *and* the value is read.
+
+```dart
+final price    = Atom<double>(10);
+final quantity = Atom<int>(2);
+
+final total = Computed(() => price.value() * quantity.value());
+
+print(total.value()); // 20.0
+```
+
+### Effect
+
+An **Effect** runs a side-effect function whenever its dependencies change. Unlike `Computed`, effects are **eager** — they execute immediately on construction and again whenever a dependency is invalidated.
+
+```dart
+final counter = Atom<int>(0);
+
+Effect(() {
+  print('Counter is: ${counter.value()}');
+});
+
+counter.update((c) => c + 1); // Prints: Counter is: 1
+```
+
+---
+
+## Reading Values
+
+| Method   | Tracks dependency? | Use case                                  |
+| -------- | :----------------: | ----------------------------------------- |
+| `value()`| ✅                 | Inside `Computed` / `Effect` bodies        |
+| `peek()` | ❌                 | Event handlers, logging, one-off reads     |
+
+---
+
+## Mutation Model
+
+Nucleas enforces a **single mutation API** for atoms:
+
+```dart
+atom.update((current) => nextValue);
+```
+
+Examples:
+
+```dart
+// Increment
+counter.update((c) => c + 1);
+
+// Direct replacement
+counter.update((_) => 42);
+```
+
+This guarantees predictable updates, deterministic execution, and easy debugging/instrumentation.
+
+---
+
+## Execution Model
+
+Reactive updates follow this pipeline:
+
+```
+Atom.update()
+      ↓
+  Dependency graph lookup
+      ↓
+  RingBuffer enqueue (O(1))
+      ↓
+  scheduleMicrotask(flush)
+      ↓
+  Computed → mark dirty + propagate
+      ↓
+  Effect → re-execute side-effect
+```
+
+Updates within the same microtask are batched automatically — multiple atom mutations that occur synchronously result in a single flush cycle.
+
+---
+
+## Custom Reactive Context
+
+By default all primitives share a global `defaultReactiveContext`. For testing or isolated sub-systems you can create your own:
+
+```dart
+final ctx = ReactiveContext();
+
+final a = Atom<int>(0, context: ctx);
+final c = Computed(() => a.value() * 2, ctx);
+
+Effect(() {
+  print(c.value());
+}, ctx);
+```
+
+---
+
+## API Reference
+
+| Type                | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `Atom<T>`           | Mutable reactive state                            |
+| `Computed<T>`       | Lazy, cached derived value                        |
+| `Effect`            | Eager side-effect runner                           |
+| `ReactiveContext`   | Dependency graph & scheduler coordinator           |
+| `Scheduler`         | Ring-buffer FIFO queue for update scheduling        |
+| `SchedulableNode`   | Interface for nodes executable by the scheduler    |
+
+---
+
+## Performance Characteristics
+
+| Operation            | Complexity       |
+| -------------------- | ---------------- |
+| Atom mutation        | O(dependents)    |
+| Dependency tracking  | O(1)             |
+| Scheduler enqueue    | O(1)             |
+| Computed access      | O(1) amortised   |
+
+---
+
+## Example
+
+```dart
+import 'package:nucleas/nucleas.dart';
+
+void main() {
+  final price    = Atom<double>(10);
+  final quantity = Atom<int>(2);
+
+  final total = Computed(() => price.value() * quantity.value());
+
+  Effect(() {
+    print('Total: ${total.value()}');
+  });
+
+  price.update((p) => p + 5); // Prints: Total: 30.0
+}
+```
+
+---
+
+## License
+
+Nucleas is released under the [MIT License](../../LICENSE).

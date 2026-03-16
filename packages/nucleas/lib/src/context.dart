@@ -3,67 +3,167 @@ import 'dart:async';
 import 'package:nucleas/src/list.dart';
 import 'package:nucleas/src/scheduler.dart';
 
+/// The global [ReactiveContext] instance used by default when no explicit
+/// context is provided to [Atom], [Computed], or [Effect] constructors.
+///
+/// Most applications will use this single shared context. Custom contexts
+/// are primarily useful for testing or for isolating independent reactive
+/// sub-systems.
 final defaultReactiveContext = ReactiveContext();
 
+/// The central coordinator for the reactive dependency graph.
+///
+/// A [ReactiveContext] owns the graph topology (which nodes depend on which),
+/// manages dependency tracking during computation, and schedules deferred
+/// updates via a [Scheduler].
+///
+/// **Lifecycle of a reactive update:**
+/// 1. An [Atom] value is mutated via [Atom.update].
+/// 2. The atom retrieves its dependents from the context and calls
+///    [scheduleUpdate] for each one.
+/// 3. [scheduleUpdate] enqueues the node ID and (if not already pending)
+///    schedules a microtask to [flush] the queue.
+/// 4. During [flush], each enqueued [SchedulableNode] is executed in FIFO
+///    order — [Computed] nodes mark themselves dirty and propagate further,
+///    while [Effect] nodes re-run their side-effect function.
 abstract interface class ReactiveContext {
+  /// Creates a new [ReactiveContext] backed by the given [scheduler].
+  ///
+  /// If [scheduler] is `null`, a default [Scheduler] with capacity 1024 is
+  /// used.
   factory ReactiveContext([Scheduler? scheduler]) = _ReactiveContextImpl;
 
-  /// Generates a unique ID for a new Atom, Computed, or Effect
+  /// Allocates a unique integer ID for a new reactive node and initialises
+  /// its dependency/dependent storage.
+  ///
+  /// Returns the newly assigned node ID.
   int registerNode();
 
+  /// Pushes [nodeId] onto the tracking stack.
+  ///
+  /// While a node is on the stack, any [trackRead] calls will record a
+  /// dependency from [nodeId] to the read provider.
   void startTracking(int nodeId);
 
+  /// Pops the most recent node from the tracking stack.
+  ///
+  /// Should always be called in a `finally` block paired with
+  /// [startTracking] to guarantee stack consistency even when the compute
+  /// function throws.
   void endTracking();
 
-  /// Called by Atom.value() or Computed.value()
+  /// Records that the currently-tracked node depends on [providerId].
+  ///
+  /// Called automatically by [Atom.value] and [Computed.value] when they
+  /// are read inside a tracking scope (i.e. inside a [Computed] or [Effect]
+  /// body).
+  ///
+  /// If no node is currently being tracked (the stack is empty), this is a
+  /// no-op.
   void trackRead(int providerId);
 
-  /// Retrieves dependents for scheduling (used during Atom.update)
+  /// Returns the list of node IDs that depend on [nodeId].
+  ///
+  /// Used by [Atom.update] to discover which downstream nodes need to be
+  /// scheduled for re-evaluation.
   GrowableUint32List getDependents(int nodeId);
 
-  /// Enqueues a node to be processed by the scheduler.
+  /// Enqueues [nodeId] for deferred execution.
+  ///
+  /// If no flush is currently in progress and no microtask has been
+  /// scheduled yet, a microtask is automatically scheduled to call [flush].
   void scheduleUpdate(int nodeId);
 
-  /// Flushes the queue and executes the updates.
+  /// Drains the scheduler queue and executes all pending [SchedulableNode]s
+  /// in FIFO order.
   void flush();
 
+  /// Associates [nodeId] with a [SchedulableNode] so it can be executed
+  /// during [flush].
+  ///
+  /// Only [Computed] and [Effect] nodes need to be registered — [Atom]
+  /// nodes are never scheduled for execution themselves.
   void registerSchedulableNode(int nodeId, SchedulableNode node);
 
+  /// Removes all **dependency** edges originating from [nodeId].
+  ///
+  /// For each provider that [nodeId] previously depended on, the reverse
+  /// (dependent) link is also removed. This is called before recomputing a
+  /// [Computed] or re-running an [Effect] so that stale dependencies are
+  /// pruned and fresh ones can be re-established via [trackRead].
   void clearDependencies(int nodeId);
 
+  /// Fully removes [nodeId] from the dependency graph and the schedulable
+  /// registry.
+  ///
+  /// After disposal the node ID is effectively dead — it will no longer
+  /// receive updates or be executed.
   void disposeNode(int nodeId);
 }
 
+/// Default implementation of [ReactiveContext].
+///
+/// Maintains the dependency graph as two parallel maps:
+///
+/// * `_dependents[A]` — the set of node IDs that **depend on** A (i.e. A's
+///   downstream consumers). Used to propagate invalidation.
+/// * `_dependencies[A]` — the set of node IDs that A **depends on** (i.e. A's
+///   upstream providers). Used to clean up stale edges before recomputation.
+///
+/// A call stack (`_compStack`) tracks which [Computed] or [Effect] is
+/// currently being evaluated so that [trackRead] knows where to record the
+/// dependency.
 final class _ReactiveContextImpl implements ReactiveContext {
   _ReactiveContextImpl([Scheduler? scheduler])
     : _scheduler = scheduler ?? Scheduler();
 
-  /// Unique ID for the next Atom, Computed or Effect node
+  /// Monotonically increasing counter for assigning unique node IDs.
+  ///
+  /// Starts at `1` because `0` is reserved as a sentinel value by the
+  /// ring-buffer scheduler (see [Scheduler.pop]).
   int _nextNodeId = 1;
 
+  /// Whether a microtask to call [flush] has already been scheduled.
   bool _isUpdateScheduled = false;
+
+  /// Whether [flush] is currently executing.
+  ///
+  /// Used together with [_isUpdateScheduled] to prevent re-entrant or
+  /// redundant microtask scheduling.
   bool _isFlushing = false;
 
+  /// The underlying queue that orders pending node executions.
   final Scheduler _scheduler;
 
-  // The call stack for nested Computeds/Effects
+  /// Stack of node IDs currently being evaluated.
+  ///
+  /// Supports nested tracking: e.g. a [Computed] reading another
+  /// [Computed] will push two IDs onto the stack.
   final GrowableUint32List _compStack = GrowableUint32List(16);
 
-  // Graph topology: Node ID -> List of Dependent/Dependency IDs
-  final Map<int, GrowableUint32List> _dependents = .new();
-  final Map<int, GrowableUint32List> _dependencies = .new();
+  /// **Downstream** map: `nodeId → [dependentIds...]`.
+  ///
+  /// When node A is read inside node B's computation, B is added to
+  /// `_dependents[A]`.
+  final Map<int, GrowableUint32List> _dependents = {};
 
-  // Store the mapping of ID to executables
+  /// **Upstream** map: `nodeId → [providerIds...]`.
+  ///
+  /// When node B reads node A, A is added to `_dependencies[B]`.
+  final Map<int, GrowableUint32List> _dependencies = {};
+
+  /// Registry mapping node IDs to their [SchedulableNode] instances.
+  ///
+  /// Only [Computed] and [Effect] nodes are registered here.
   final Map<int, SchedulableNode> _schedulables = {};
 
   @override
   int registerNode() {
     final id = _nextNodeId;
 
-    _dependents[id] = .new();
-    _dependencies[id] = .new();
+    _dependents[id] = GrowableUint32List();
+    _dependencies[id] = GrowableUint32List();
 
-    // Increment _nextNodeId
     _nextNodeId += 1;
 
     return id;
@@ -84,11 +184,12 @@ final class _ReactiveContextImpl implements ReactiveContext {
 
     final consumerId = _compStack.last;
 
-    // These cannot be null because we pre-initialize them in registerNode()
+    // These are guaranteed non-null because registerNode() pre-initialises
+    // both maps for every node.
     final providerDependents = _dependents[providerId]!;
     final consumerDependencies = _dependencies[consumerId]!;
 
-    // Bidirectional link (only add if not already present to avoid duplicates)
+    // Establish a bidirectional link, skipping duplicates.
     if (!providerDependents.contains(consumerId)) {
       providerDependents.add(consumerId);
     }
@@ -100,21 +201,22 @@ final class _ReactiveContextImpl implements ReactiveContext {
 
   @override
   GrowableUint32List getDependents(int nodeId) =>
-      _dependents[nodeId] ?? .new(0);
+      _dependents[nodeId] ?? GrowableUint32List(0);
 
   @override
   void scheduleUpdate(int nodeId) {
     final node = _schedulables[nodeId];
 
-    // If it's already in the queue or does not exists, do nothing.
+    // If the node doesn't exist in the registry or is already enqueued,
+    // there's nothing to do.
     if (node == null || node.isScheduled) return;
 
     node.isScheduled = true;
 
     _scheduler.push(nodeId);
 
-    // Auto-trigger the scheduler if it isn't already running.
-    // and we aren't currently in the middle of executing one.
+    // Auto-schedule a microtask to drain the queue if one isn't already
+    // pending and we aren't in the middle of a flush.
     if (!_isUpdateScheduled && !_isFlushing) {
       _isUpdateScheduled = true;
       scheduleMicrotask(flush);
@@ -128,13 +230,15 @@ final class _ReactiveContextImpl implements ReactiveContext {
 
   @override
   void flush() {
-    // Reset the scheduling flag so future updates can schedule a new microtask
+    // Allow future mutations to schedule a fresh microtask.
     _isUpdateScheduled = false;
     _isFlushing = true;
 
     try {
       while (!_scheduler.isEmpty) {
         final id = _scheduler.pop();
+
+        // `0` is the ring-buffer sentinel for an empty queue.
         if (id == 0) continue;
 
         _schedulables[id]?.execute();
@@ -150,6 +254,8 @@ final class _ReactiveContextImpl implements ReactiveContext {
 
     if (deps == null || deps.isEmpty) return;
 
+    // For each provider this node previously depended on, remove the
+    // reverse (dependent) link.
     for (var i = 0; i < deps.length; i++) {
       _dependents[deps[i]]?.remove(nodeId);
     }
