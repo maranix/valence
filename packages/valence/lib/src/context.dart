@@ -107,6 +107,16 @@ abstract interface class ValenceContext {
   ///
   /// Also removes all dependency and dependent edges for the given node.
   void disposeNode(int nodeId);
+
+  /// Sets the maximum number of times [flush] will run before throwing.
+  ///
+  /// This is a safety mechanism to prevent infinite loops in case of
+  /// cyclic dependencies.
+  ///
+  /// The default value is `100_000`.
+  ///
+  /// Throws [ArgumentError] if [maxFlushIterations] is negative.
+  void setMaxFlushIterations(int maxFlushIterations);
 }
 
 /// Default implementation of [ValenceContext].
@@ -164,6 +174,18 @@ final class _ValenceContextImpl implements ValenceContext {
   ///
   /// Only [Computed] and [Effect] nodes are registered here.
   final Map<int, SchedulableNode> _schedulables = {};
+
+  /// The maximum number of times [flush] will run before throwing.
+  int _maxFlushIterations = 100_000;
+
+  @override
+  void setMaxFlushIterations(int maxFlushIterations) {
+    if (maxFlushIterations < 0) {
+      throw ArgumentError('maxFlushIterations must be non-negative');
+    }
+
+    _maxFlushIterations = maxFlushIterations;
+  }
 
   @override
   int registerNode() {
@@ -242,14 +264,25 @@ final class _ValenceContextImpl implements ValenceContext {
     _isUpdateScheduled = false;
     _isFlushing = true;
 
+    int iterations = 0;
+
     try {
       while (!_scheduler.isEmpty) {
+        if (iterations > _maxFlushIterations) {
+          // Purge the queue so we don't stay trapped on the next run
+          _scheduler.clear();
+          throw StateError(
+            'Cyclic dependency detected: The reactive scheduler exceeded '
+            '$_maxFlushIterations iterations in a single flush cycle.',
+          );
+        }
+        iterations += 1;
+
         final id = _scheduler.pop();
-
         // `0` is the ring-buffer sentinel for an empty queue.
-        if (id == 0) continue;
-
-        _schedulables[id]?.execute();
+        if (id != 0) {
+          _schedulables[id]?.execute();
+        }
       }
     } finally {
       _isFlushing = false;

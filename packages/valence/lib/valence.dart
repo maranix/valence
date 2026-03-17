@@ -41,4 +41,15 @@ abstract final class Valence {
   /// Drains the scheduler queue and executes all pending [SchedulableNode]s
   /// in FIFO order.
   static void flush() => defaultValenceContext.flush();
+
+  /// Sets the maximum number of times [flush] will run before throwing.
+  ///
+  /// This is a safety mechanism to prevent infinite loops in case of
+  /// cyclic dependencies.
+  ///
+  /// The default value is `100_000`.
+  ///
+  /// Throws [ArgumentError] if [count] is negative.
+  static void setMaxFlushIterations(int count) =>
+      defaultValenceContext.setMaxFlushIterations(count);
 }
