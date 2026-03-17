@@ -59,6 +59,16 @@ final class GrowableUint32List {
   ///
   /// Amortised time complexity: **O(1)**.
   void add(int value) {
+    // This assert ensures we NEVER have duplicates in debug mode.
+    assert(
+      !contains(value),
+      'GrowableUint32List cannot contain duplicates. '
+      'This is an internal framework bug.'
+      '\n'
+      'Please report this issue to the GitHub repository with a minimal '
+      'reproducible example.',
+    );
+
     if (_length == _data.length) {
       final newData = Uint32List(_data.length * 2);
       newData.setAll(0, _data);
@@ -81,6 +91,9 @@ final class GrowableUint32List {
       if (_data[i] == value) {
         _data[i] = _data[_length - 1];
         _length -= 1;
+
+        compact();
+
         return;
       }
     }
@@ -114,5 +127,27 @@ final class GrowableUint32List {
   /// The backing buffer is retained; only the logical length is reset to zero.
   void clear() {
     _length = 0;
+  }
+
+  /// Compacts the backing buffer to the current logical length if it is
+  /// significantly larger than the current length.
+  ///
+  /// This reduces memory usage when the list has been significantly shrunk.
+  void compact() {
+    final quarterCapacity = _data.length >> 2;
+
+    // Don't compact if the list is empty or already at capacity.
+    //
+    // Also don't compact if the list is small (<= 16 elements) to avoid
+    // unnecessary allocations.
+    if (_data.length <= 16 || _length >= quarterCapacity) return;
+
+    // Cut the new capacity in half.
+    final updatedCapacity = _data.length >> 1;
+    final newData = Uint32List(updatedCapacity);
+
+    newData.setAll(0, Uint32List.sublistView(_data, 0, _length));
+
+    _data = newData;
   }
 }

@@ -204,7 +204,15 @@ final class _ValenceContextImpl implements ValenceContext {
 
   @override
   void endTracking() {
-    if (_compStack.isEmpty) return;
+    if (_compStack.isEmpty) {
+      throw StateError(
+        'Tracking stack underflow: Unbalanced startTracking/endTracking calls. '
+        'This is an internal framework bug.'
+        '\n'
+        'Please report this issue to the GitHub repository with a minimal '
+        'reproducible example.',
+      );
+    }
     _compStack.removeLast();
   }
 
