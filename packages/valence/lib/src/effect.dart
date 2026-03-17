@@ -77,6 +77,9 @@ final class _EffectImpl implements Effect {
   /// Whether this node is currently enqueued in the scheduler.
   bool _isScheduled = false;
 
+  /// Whether this effect has been disposed.
+  bool _isDisposed = false;
+
   @override
   bool get isScheduled => _isScheduled;
 
@@ -87,6 +90,8 @@ final class _EffectImpl implements Effect {
 
   @override
   void execute() {
+    if (_isDisposed) return;
+
     isScheduled = false;
 
     // Clear old dependency edges so that stale subscriptions are pruned.
@@ -102,6 +107,9 @@ final class _EffectImpl implements Effect {
 
   @override
   void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
     _context.disposeNode(_id);
   }
 }

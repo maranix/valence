@@ -93,6 +93,9 @@ final class _ComputedImpl<T> implements Computed<T> {
   /// Whether this node is currently enqueued in the scheduler.
   bool _isScheduled = false;
 
+  /// Whether this computed has been disposed.
+  bool _isDisposed = false;
+
   /// Clears stale dependencies, re-runs [_fn], and caches the result.
   ///
   /// Dependencies are re-established from scratch on each call to
@@ -120,6 +123,10 @@ final class _ComputedImpl<T> implements Computed<T> {
 
   @override
   T value() {
+    if (_isDisposed) {
+      throw StateError('Attempted to read a disposed Computed node.');
+    }
+
     // Register this computed as a dependency of whichever node is currently
     // being tracked (if any).
     _context.trackRead(_id);
@@ -131,6 +138,8 @@ final class _ComputedImpl<T> implements Computed<T> {
 
   @override
   void execute() {
+    if (_isDisposed) return;
+
     isScheduled = false;
 
     // If already dirty there's nothing more to do — we'll recompute lazily
@@ -146,5 +155,10 @@ final class _ComputedImpl<T> implements Computed<T> {
   }
 
   @override
-  void dispose() => _context.disposeNode(_id);
+  void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
+    _context.disposeNode(_id);
+  }
 }

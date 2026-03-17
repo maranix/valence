@@ -109,14 +109,29 @@ final class _AtomImpl<T> implements Atom<T> {
   /// The current stored value.
   T _value;
 
+  /// Whether this atom has been disposed.
+  bool _isDisposed = false;
+
+  void _checkDisposed(String intent) {
+    if (_isDisposed) {
+      throw StateError('Attempted to $intent a disposed Atom.');
+    }
+  }
+
   @override
   T value() {
+    _checkDisposed('read');
+
     _context.trackRead(_id);
     return _value;
   }
 
   @override
-  T peek() => _value;
+  T peek() {
+    _checkDisposed('peek');
+
+    return _value;
+  }
 
   @override
   void update(
@@ -124,6 +139,8 @@ final class _AtomImpl<T> implements Atom<T> {
     bool flush = false,
     bool Function(T a, T b)? equals,
   }) {
+    _checkDisposed('update');
+
     final next = mutator(_value);
 
     // Skip propagation if the value hasn't actually changed.
@@ -143,5 +160,10 @@ final class _AtomImpl<T> implements Atom<T> {
   }
 
   @override
-  void dispose() => _context.disposeNode(_id);
+  void dispose() {
+    if (_isDisposed) return;
+
+    _isDisposed = true;
+    _context.disposeNode(_id);
+  }
 }

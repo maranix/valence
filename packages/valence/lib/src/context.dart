@@ -93,11 +93,19 @@ abstract interface class ValenceContext {
   /// pruned and fresh ones can be re-established via [trackRead].
   void clearDependencies(int nodeId);
 
+  /// Removes all **dependent** edges pointing to [nodeId].
+  ///
+  /// This is called when a node is disposed to prevent dangling dependent
+  /// references.
+  void clearDependents(int nodeId);
+
   /// Fully removes [nodeId] from the dependency graph and the schedulable
   /// registry.
   ///
   /// After disposal the node ID is effectively dead — it will no longer
   /// receive updates or be executed.
+  ///
+  /// Also removes all dependency and dependent edges for the given node.
   void disposeNode(int nodeId);
 }
 
@@ -264,8 +272,23 @@ final class _ValenceContextImpl implements ValenceContext {
   }
 
   @override
+  void clearDependents(int nodeId) {
+    final deps = _dependents[nodeId];
+
+    if (deps == null || deps.isEmpty) return;
+
+    // For each dependent, remove the reverse (dependency) link.
+    for (var i = 0; i < deps.length; i++) {
+      _dependencies[deps[i]]?.remove(nodeId);
+    }
+
+    deps.clear();
+  }
+
+  @override
   void disposeNode(int nodeId) {
     clearDependencies(nodeId);
+    clearDependents(nodeId);
 
     _dependents.remove(nodeId);
     _dependencies.remove(nodeId);
