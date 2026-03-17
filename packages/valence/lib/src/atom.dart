@@ -1,4 +1,5 @@
 import 'package:valence/src/context.dart';
+import 'package:valence/src/utils.dart';
 
 /// A function that transforms an atom's current value into a new value.
 ///
@@ -48,7 +49,11 @@ abstract interface class Atom<T> {
   ///
   /// By default the atom uses [defaultValenceContext]. Pass a custom
   /// [context] if you need isolated reactive sub-systems (e.g. in tests).
-  factory Atom(T value, {ValenceContext? context}) = _AtomImpl;
+  factory Atom(
+    T value, {
+    ValenceContext? context,
+    bool Function(T a, T b)? equals,
+  }) = _AtomImpl;
 
   /// Returns the current value and registers a dependency on this atom
   /// in the active tracking scope.
@@ -69,7 +74,11 @@ abstract interface class Atom<T> {
   /// A change is detected by first checking [identical] (reference equality)
   /// and then the `==` operator. If neither indicates a change, propagation
   /// is skipped entirely.
-  void update(AtomMutator<T> mutator);
+  void update(
+    AtomMutator<T> mutator, {
+    bool flush = false,
+    bool Function(T a, T b)? equals,
+  });
 
   /// Removes this atom from the dependency graph.
   ///
@@ -79,8 +88,12 @@ abstract interface class Atom<T> {
 
 /// Default implementation of [Atom].
 final class _AtomImpl<T> implements Atom<T> {
-  _AtomImpl(this._value, {ValenceContext? context})
-    : _context = context ?? defaultValenceContext {
+  _AtomImpl(
+    this._value, {
+    ValenceContext? context,
+    bool Function(T a, T b)? equals,
+  }) : _context = context ?? defaultValenceContext,
+       _equals = equals ?? defaultEquals {
     _id = _context.registerNode();
   }
 
@@ -89,6 +102,9 @@ final class _AtomImpl<T> implements Atom<T> {
 
   /// The reactive context this atom is registered with.
   final ValenceContext _context;
+
+  /// The equality function used to compare values.
+  final bool Function(T a, T b) _equals;
 
   /// The current stored value.
   T _value;
@@ -103,11 +119,15 @@ final class _AtomImpl<T> implements Atom<T> {
   T peek() => _value;
 
   @override
-  void update(AtomMutator<T> mutator) {
+  void update(
+    AtomMutator<T> mutator, {
+    bool flush = false,
+    bool Function(T a, T b)? equals,
+  }) {
     final next = mutator(_value);
 
     // Skip propagation if the value hasn't actually changed.
-    if (identical(_value, next) || _value == next) return;
+    if (_equals(_value, next)) return;
 
     _value = next;
 
@@ -115,6 +135,10 @@ final class _AtomImpl<T> implements Atom<T> {
     final deps = _context.getDependents(_id);
     for (var i = 0; i < deps.length; i++) {
       _context.scheduleUpdate(deps[i]);
+    }
+
+    if (flush) {
+      _context.flush();
     }
   }
 
