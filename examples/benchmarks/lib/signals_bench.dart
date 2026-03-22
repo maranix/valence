@@ -27,7 +27,10 @@ class SignalsDiamondBenchmark extends BenchmarkBase {
     d1 = computed(() => s.value + 1);
     d2 = computed(() => s.value + 2);
     d3 = computed(() => d1.value + d2.value);
-    cleanup = effect(() { d3.value; runs++; });
+    cleanup = effect(() {
+      d3.value;
+      runs++;
+    });
   }
 
   @override
@@ -51,7 +54,10 @@ class SignalsDeepBenchmark extends BenchmarkBase {
       final prev = current;
       current = computed(() => prev.value + 1);
     }
-    cleanup = effect(() { current.value; runs++; });
+    cleanup = effect(() {
+      current.value;
+      runs++;
+    });
   }
 
   @override
@@ -71,13 +77,20 @@ class SignalsFanOutBenchmark extends BenchmarkBase {
   void setup() {
     s = signal<int>(0);
     for (var i = 0; i < 100; i++) {
-      cleanups.add(effect(() { s.value; runs++; }));
+      cleanups.add(
+        effect(() {
+          s.value;
+          runs++;
+        }),
+      );
     }
   }
 
   @override
   void teardown() {
-    for (final c in cleanups) c();
+    for (final c in cleanups) {
+      c();
+    }
   }
 
   @override

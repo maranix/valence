@@ -22,8 +22,12 @@ final class Derive<T> implements ReactiveNode {
 
   T? _cachedValue;
   int _depth = 0;
-  Set<Node> _deps = {};
-  final Set<ReactiveNode> _dependents = {};
+
+  List<Node> _dependencies = [];
+  final List<ReactiveNode> _dependents = [];
+
+  @override
+  bool isPending = false;
 
   @override
   int get depth => _depth;
@@ -53,34 +57,38 @@ final class Derive<T> implements ReactiveNode {
     if (_equals(_cachedValue as T, next)) return;
 
     _cachedValue = next;
-    for (final dep in _dependents) {
-      _scope.enqueue(dep);
+
+    for (var i = 0; i < _dependents.length; i++) {
+      _scope.enqueue(_dependents[i]);
     }
   }
 
-  void _updateDeps(Set<Node> newDeps) {
-    for (final dep in _deps) {
+  void _updateDeps(List<Node> newDeps) {
+    for (var i = 0; i < _dependencies.length; i++) {
+      final dep = _dependencies[i];
       if (!newDeps.contains(dep)) {
         dep.removeDependent(this);
       }
     }
     var maxDepth = 0;
-    for (final dep in newDeps) {
-      if (!_deps.contains(dep)) {
+    for (var i = 0; i < newDeps.length; i++) {
+      final dep = newDeps[i];
+      if (!_dependencies.contains(dep)) {
         dep.addDependent(this);
       }
       final d = dep is ReactiveNode ? dep.depth : 0;
       if (d > maxDepth) maxDepth = d;
     }
-    _deps = newDeps;
+    _dependencies = newDeps;
     _depth = maxDepth + 1;
   }
 
   void dispose() {
-    for (final dep in _deps) {
+    for (final dep in _dependencies) {
       dep.removeDependent(this);
     }
-    _deps.clear();
+
+    _dependencies.clear();
     _dependents.clear();
   }
 }

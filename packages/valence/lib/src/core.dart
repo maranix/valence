@@ -5,5 +5,7 @@ abstract interface class Node {
 
 abstract interface class ReactiveNode implements Node {
   int get depth;
+  bool get isPending;
+  set isPending(bool value);
   void recompute();
 }

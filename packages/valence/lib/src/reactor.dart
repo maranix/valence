@@ -12,7 +12,9 @@ final class Reactor implements ReactiveNode {
   final VoidCallback _fn;
 
   int _depth = 0;
-  Set<Node> _deps = {};
+  @override
+  bool isPending = false;
+  List<Node> _deps = [];
 
   @override
   int get depth => _depth;
@@ -38,14 +40,16 @@ final class Reactor implements ReactiveNode {
     }
   }
 
-  void _updateDeps(Set<Node> newDeps) {
-    for (final dep in _deps) {
+  void _updateDeps(List<Node> newDeps) {
+    for (var i = 0; i < _deps.length; i++) {
+      final dep = _deps[i];
       if (!newDeps.contains(dep)) {
         dep.removeDependent(this);
       }
     }
     var maxDepth = 0;
-    for (final dep in newDeps) {
+    for (var i = 0; i < newDeps.length; i++) {
+      final dep = newDeps[i];
       if (!_deps.contains(dep)) {
         dep.addDependent(this);
       }

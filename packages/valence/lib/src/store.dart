@@ -14,7 +14,7 @@ final class Store<S> implements Node {
 
   final EqualityCallback<S> _equals;
   final List<S> _history = [];
-  final Set<ReactiveNode> _dependents = {};
+  final List<ReactiveNode> _dependents = [];
 
   @override
   void addDependent(ReactiveNode node) => _dependents.add(node);
@@ -39,8 +39,8 @@ final class Store<S> implements Node {
     _history.add(_value);
     _value = next;
 
-    for (final dep in _dependents) {
-      _scope.enqueue(dep);
+    for (var i = 0; i < _dependents.length; i++) {
+      _scope.enqueue(_dependents[i]);
     }
     if (!_scope.isBatching) _scope.flushPending();
   }
@@ -48,8 +48,8 @@ final class Store<S> implements Node {
   void undo() {
     if (_history.isEmpty) return;
     _value = _history.removeLast();
-    for (final dep in _dependents) {
-      _scope.enqueue(dep);
+    for (var i = 0; i < _dependents.length; i++) {
+      _scope.enqueue(_dependents[i]);
     }
     if (!_scope.isBatching) _scope.flushPending();
   }

@@ -13,7 +13,7 @@ class BlocDispatchBenchmark extends BenchmarkBase {
 
   @override
   void setup() => c = CounterCubit();
-  
+
   @override
   void teardown() => c.close();
 
@@ -31,13 +31,19 @@ class BlocFanOutBenchmark extends BenchmarkBase {
   void setup() {
     c = CounterCubit();
     for (var i = 0; i < 100; i++) {
-      subs.add(c.stream.listen((_) { runs++; }));
+      subs.add(
+        c.stream.listen((_) {
+          runs++;
+        }),
+      );
     }
   }
 
   @override
   void teardown() {
-    for (final s in subs) s.cancel();
+    for (final s in subs) {
+      s.cancel();
+    }
     c.close();
   }
 

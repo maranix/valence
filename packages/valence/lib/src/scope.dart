@@ -16,21 +16,25 @@ final class Scope {
 
   // --- Execution & Tracking State ---
 
-  final List<Set<Node>> trackingStack = [];
+  final List<List<Node>> trackingStack = [];
   bool get isTracking => _core.trackingStack.isNotEmpty;
 
-  void beginTracking() => _core.trackingStack.add({});
-  Set<Node> endTracking() => _core.trackingStack.removeLast();
+  void beginTracking() => _core.trackingStack.add(<Node>[]);
+
+  List<Node> endTracking() => _core.trackingStack.removeLast();
 
   void recordRead(Node node) {
-    if (_core.trackingStack.isNotEmpty) {
-      _core.trackingStack.last.add(node);
+    if (_core.trackingStack.isEmpty) return;
+
+    final list = _core.trackingStack.last;
+    for (var i = 0; i < list.length; i++) {
+      if (identical(list[i], node)) return;
     }
+    list.add(node);
   }
 
   // --- Flush Queue & Batching ---
 
-  final Set<ReactiveNode> _pendingSet = {};
   final List<ReactiveNode> _pendingList = [];
   int _batchDepth = 0;
 
@@ -44,18 +48,26 @@ final class Scope {
   }
 
   void enqueue(ReactiveNode node) {
-    if (!_core._pendingSet.add(node)) return;
+    if (node.isPending) return;
+    node.isPending = true;
+
     var i = _core._pendingList.length;
-    while (i > 0 && _core._pendingList[i - 1].depth > node.depth) i--;
-    _core._pendingList.insert(i, node);
+    while (i > 0 && _core._pendingList[i - 1].depth > node.depth) {
+      i--;
+    }
+    if (i == _core._pendingList.length) {
+      _core._pendingList.add(node);
+    } else {
+      _core._pendingList.insert(i, node);
+    }
   }
 
   void flushPending() {
     while (_core._pendingList.isNotEmpty) {
       final snapshot = List<ReactiveNode>.of(_core._pendingList);
       _core._pendingList.clear();
-      _core._pendingSet.clear();
       for (final node in snapshot) {
+        node.isPending = false;
         node.recompute();
       }
     }
