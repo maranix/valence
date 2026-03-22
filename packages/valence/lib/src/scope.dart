@@ -18,6 +18,21 @@ final class Scope {
   late final Scope _core;
 
   // --- Execution & Tracking State ---
+  List<Node>? _verifyDeps;
+  int _verifyIdx = 0;
+  bool _verifyOk = true;
+
+  void beginVerify(List<Node> deps) {
+    _core._verifyDeps = deps;
+    _core._verifyIdx = 0;
+    _core._verifyOk = true;
+  }
+
+  bool endVerify(int expectedLength) {
+    final ok = _core._verifyOk && _core._verifyIdx == expectedLength;
+    _core._verifyDeps = null;
+    return ok;
+  }
 
   final List<List<Node>> _trackingStack = [];
 
@@ -28,13 +43,25 @@ final class Scope {
   List<Node> endTracking() => _core._trackingStack.removeLast();
 
   void recordRead(Node node) {
-    if (_core._trackingStack.isEmpty) return;
-
-    final list = _core._trackingStack.last;
-    for (var i = 0; i < list.length; i++) {
-      if (identical(list[i], node)) return;
+    final core = _core;
+    if (core._trackingStack.isNotEmpty) {
+      final list = core._trackingStack.last;
+      for (var i = 0; i < list.length; i++) {
+        if (identical(list[i], node)) return;
+      }
+      list.add(node);
+      return;
     }
-    list.add(node);
+
+    final vd = core._verifyDeps;
+    if (vd != null && core._verifyOk) {
+      if (core._verifyIdx >= vd.length ||
+          !identical(vd[core._verifyIdx], node)) {
+        core._verifyOk = false;
+      } else {
+        core._verifyIdx++;
+      }
+    }
   }
 
   // --- Flush Queue & Batching ---

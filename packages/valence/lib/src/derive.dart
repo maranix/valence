@@ -70,6 +70,8 @@ final class Derive<T> implements ReactiveNode {
       if (!_dependenciesUnchanged(newDependencies)) {
         _updateDependencies(newDependencies);
         _isStable = false;
+      } else {
+        _isStable = true;
       }
     }
   }

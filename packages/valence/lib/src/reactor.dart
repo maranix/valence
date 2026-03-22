@@ -13,6 +13,8 @@ final class Reactor implements ReactiveNode {
 
   int _depth = 0;
 
+  bool _isStable = false;
+
   @override
   bool isPending = false;
 
@@ -28,7 +30,15 @@ final class Reactor implements ReactiveNode {
   void removeDependent(ReactiveNode node) {}
 
   @override
-  void recompute() => run();
+  void recompute() {
+    if (_isStable) {
+      _scope.beginVerify(_dependencies);
+      _fn();
+      if (_scope.endVerify(_dependencies.length)) return;
+      _isStable = false;
+    }
+    run();
+  }
 
   void run() {
     _scope.beginTracking();
@@ -40,6 +50,8 @@ final class Reactor implements ReactiveNode {
         _updateDependencies(newDependencies);
       }
     }
+
+    _isStable = true;
   }
 
   void _updateDependencies(List<Node> newDependencies) {

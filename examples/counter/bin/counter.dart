@@ -1,20 +1,34 @@
 import 'package:valence/valence.dart';
 
-// void main() async {
-//   final counter = Atom(0);
-//   final count = Computed(() => counter.value() * 10);
+final class Increment implements Reducer<int> {
+  const Increment();
 
-//   Effect(() {
-//     print("Effect fired! Computed count is: ${count.value()}");
-//   });
+  @override
+  int reduce(int state) => state + 1;
+}
 
-//   print("--- Running Batched Updates ---");
-//   counter.update((c) => c + 1);
-//   await Future.delayed(.new(seconds: 1));
-//   counter.update((c) => c + 1);
-//   await Future.delayed(.new(seconds: 1));
-//   counter.update((c) => c + 1);
-//   await Future.delayed(.new(seconds: 1));
+final class Decrement implements Reducer<int> {
+  const Decrement();
 
-//   print("--- Done ---");
-// }
+  @override
+  int reduce(int state) => state - 1;
+}
+
+void main() async {
+  final counter = store(0);
+  final count = derive(() => counter() * 10);
+
+  reactor(() {
+    print("Effect fired! Computed count is: ${count()}");
+  });
+
+  print("--- Running Batched Updates ---");
+  counter.dispatch(const Increment());
+  await Future.delayed(.new(seconds: 1));
+  counter.dispatch(const Increment());
+  await Future.delayed(.new(seconds: 1));
+  counter.dispatch(const Increment());
+  await Future.delayed(.new(seconds: 1));
+
+  print("--- Done ---");
+}
