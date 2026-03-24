@@ -10,6 +10,9 @@ abstract interface class Source {
   /// Unregisters a previously registered [Dependent] node so it no longer
   /// receives updates from this source.
   void removeDependent(Dependent node);
+
+  /// Disposes the source and cleans up any resources it holds.
+  void dispose();
 }
 
 /// Represents a node that depends on one or more [Source]s and [Dependent]s.
@@ -33,4 +36,7 @@ abstract interface class Dependent {
   ///
   /// This method is called by the reactive engine during the update phase.
   void recompute();
+
+  /// Disposes the dependent and cleans up any resources it holds.
+  void dispose();
 }

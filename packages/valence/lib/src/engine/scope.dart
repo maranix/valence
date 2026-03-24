@@ -1,6 +1,3 @@
-import 'package:valence/src/primitive/derive.dart';
-import 'package:valence/src/primitive/store.dart';
-import 'package:valence/src/primitive/reactor.dart';
 import 'package:valence/src/engine/graph.dart';
 import 'package:valence/src/engine/registry.dart';
 import 'package:valence/src/engine/schedular.dart';
@@ -10,10 +7,7 @@ abstract interface class Scope {
 
   Graph get graph;
   Schedular get schedular;
-
-  void registerStore(Store store);
-  void registerDerive(Derive store);
-  void registerReactor(Reactor store);
+  Registry get registry;
 
   void dispose();
 }
@@ -35,13 +29,7 @@ final class _ScopeImpl implements Scope {
   Schedular get schedular => _schedular;
 
   @override
-  void registerDerive(Derive derive) => _registry.registerDerive(derive);
-
-  @override
-  void registerReactor(Reactor reactor) => _registry.registerReactor(reactor);
-
-  @override
-  void registerStore(Store store) => _registry.registerStore(store);
+  Registry get registry => _registry;
 
   @override
   void dispose() => _registry.dispose();

@@ -16,7 +16,7 @@ final class Store<S> implements Source {
   Store(this._value, {Scope? scope, EqualityCallback<S>? equals})
     : _scope = scope ?? Valence.root,
       _equals = equals ?? defaultEquals {
-    _scope.registerStore(this);
+    _scope.registry.registerSource(this);
   }
 
   final Scope _scope;
@@ -71,7 +71,6 @@ final class Store<S> implements Source {
     if (!_scope.schedular.isBatching) _scope.schedular.flush();
   }
 
-  void dispose() {
-    _dependents.clear();
-  }
+  @override
+  void dispose() => _dependents.clear();
 }

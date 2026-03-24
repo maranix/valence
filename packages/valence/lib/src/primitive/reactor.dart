@@ -33,7 +33,7 @@ final class Reactor implements Dependent {
   ///
   /// {@macro valence.Reactor}
   Reactor(this._fn, {Scope? scope}) : _scope = scope ?? Valence.root {
-    _scope.registerReactor(this);
+    _scope.registry.registerDependent(this);
     run();
   }
 
@@ -136,6 +136,7 @@ final class Reactor implements Dependent {
     _depth = maxDepth + 1;
   }
 
+  @override
   void dispose() {
     for (final source in _sources) {
       source.removeDependent(this);

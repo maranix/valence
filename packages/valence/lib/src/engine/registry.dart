@@ -1,48 +1,46 @@
-import 'package:valence/src/primitive/store.dart';
-import 'package:valence/src/primitive/derive.dart';
-import 'package:valence/src/primitive/reactor.dart';
+import 'package:collection/collection.dart';
+import 'package:valence/src/engine/node.dart';
 
 abstract interface class Registry {
   factory Registry() = _RegistryImpl;
 
-  void registerStore(Store store);
-  void registerDerive(Derive derive);
-  void registerReactor(Reactor reactor);
+  /// Registers a [Source] for disposal when this scope is disposed.
+  void registerSource(Source source);
+
+  /// Registers a [Dependent] for disposal when this scope is disposed.
+  ///
+  /// Dependents are disposed before sources, and deepest-first among
+  /// themselves.
+  ///
+  /// Ensuring no [Dependent] fires into an already-disposed node.
+  void registerDependent(Dependent dependent);
 
   void dispose();
 }
 
 final class _RegistryImpl implements Registry {
-  final List<Store> _storeList = [];
-  final List<Derive> _deriveList = [];
-  final List<Reactor> _reactorList = [];
+  final List<Source> _sources = [];
+  final PriorityQueue<Dependent> _dependents = PriorityQueue(
+    (a, b) => b.depth.compareTo(a.depth),
+  );
 
   @override
-  void registerDerive(Derive derive) => _deriveList.add(derive);
+  void registerSource(Source source) => _sources.add(source);
 
   @override
-  void registerReactor(Reactor reactor) => _reactorList.add(reactor);
-
-  @override
-  void registerStore(Store store) => _storeList.add(store);
+  void registerDependent(Dependent dependent) => _dependents.add(dependent);
 
   @override
   void dispose() {
-    for (final s in _storeList) {
+    while (_dependents.isNotEmpty) {
+      _dependents.removeFirst().dispose();
+    }
+
+    for (final s in _sources) {
       s.dispose();
     }
-    for (final r in _reactorList) {
-      r.dispose();
-    }
 
-    _deriveList.sort((a, b) => b.depth.compareTo(a.depth));
-
-    for (final d in _deriveList) {
-      d.dispose();
-    }
-
-    _storeList.clear();
-    _deriveList.clear();
-    _reactorList.clear();
+    _sources.clear();
+    _dependents.clear();
   }
 }

@@ -16,7 +16,7 @@ final class Derive<T> implements Source, Dependent {
   Derive(this._compute, {Scope? scope, EqualityCallback<T>? equals})
     : _scope = scope ?? Valence.root,
       _equals = equals ?? defaultEquals {
-    _scope.registerDerive(this);
+    _scope.registry.registerDependent(this);
     _cachedValue = _retrackAndCompute();
   }
 
@@ -117,6 +117,7 @@ final class Derive<T> implements Source, Dependent {
     _depth = maxDepth + 1;
   }
 
+  @override
   void dispose() {
     for (final source in _sources) {
       source.removeDependent(this);
