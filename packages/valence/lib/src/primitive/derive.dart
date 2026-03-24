@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:valence/types.dart';
 import 'package:valence/utils/equality.dart';
 
@@ -11,18 +12,12 @@ Derive<T> derive<T>(
   EqualityCallback<T>? equals,
 }) => Derive<T>(fn, scope: scope, equals: equals);
 
-final class Derive<T> implements ReactiveNode {
+final class Derive<T> implements Source, Dependent {
   Derive(this._compute, {Scope? scope, EqualityCallback<T>? equals})
     : _scope = scope ?? Valence.root,
       _equals = equals ?? defaultEquals {
     _scope.registerDerive(this);
-    _scope.graph.beginTracking();
-    try {
-      _cachedValue = _compute();
-    } finally {
-      final deps = _scope.graph.endTracking();
-      _updateDependencies(deps);
-    }
+    _cachedValue = _retrackAndCompute();
   }
 
   final Scope _scope;
@@ -34,8 +29,8 @@ final class Derive<T> implements ReactiveNode {
 
   bool _isStable = false;
 
-  List<Node> _dependencies = [];
-  final List<ReactiveNode> _dependents = [];
+  List<Source> _sources = [];
+  final List<Dependent> _dependents = [];
 
   @override
   bool isPending = false;
@@ -44,10 +39,10 @@ final class Derive<T> implements ReactiveNode {
   int get depth => _depth;
 
   @override
-  void addDependent(ReactiveNode node) => _dependents.add(node);
+  void addDependent(Dependent node) => _dependents.add(node);
 
   @override
-  void removeDependent(ReactiveNode node) => _dependents.remove(node);
+  void removeDependent(Dependent node) => _dependents.remove(node);
 
   T call() {
     _scope.graph.recordSource(this);
@@ -76,8 +71,8 @@ final class Derive<T> implements ReactiveNode {
       return _compute();
     } finally {
       final newDependencies = _scope.graph.endTracking();
-      if (!_dependenciesUnchanged(newDependencies)) {
-        _updateDependencies(newDependencies);
+      if (!_sourcesUnchanged(newDependencies)) {
+        _updateSources(newDependencies);
         _isStable = false;
       } else {
         _isStable = true;
@@ -85,9 +80,10 @@ final class Derive<T> implements ReactiveNode {
     }
   }
 
-  void _updateDependencies(List<Node> newDependencies) {
-    final newSet = newDependencies.toSet();
-    final oldSet = _dependencies.toSet();
+  void _updateSources(List<Source> sources) {
+    final derives = sources.whereType<Dependent>();
+    final newSet = sources.toSet();
+    final oldSet = _sources.toSet();
 
     for (final dep in newSet) {
       if (!oldSet.contains(dep)) dep.addDependent(this);
@@ -97,38 +93,36 @@ final class Derive<T> implements ReactiveNode {
       if (!newSet.contains(dep)) dep.removeDependent(this);
     }
 
-    _dependencies = newDependencies;
-    _updateDepth(newDependencies);
+    _sources = sources;
+    _updateDepth(derives);
   }
 
-  bool _dependenciesUnchanged(List<Node> newDependencies) {
-    if (newDependencies.length != _dependencies.length) return false;
+  bool _sourcesUnchanged(List<Source> sources) {
+    if (sources.length != _sources.length) return false;
 
-    for (var i = 0; i < newDependencies.length; i++) {
-      if (!identical(newDependencies[i], _dependencies[i])) return false;
+    for (var i = 0; i < sources.length; i++) {
+      if (!identical(sources[i], _sources[i])) return false;
     }
 
     return true;
   }
 
-  void _updateDepth(List<Node> dependencies) {
+  void _updateDepth(Iterable<Dependent> dependencies) {
     var maxDepth = 0;
-    for (var i = 0; i < dependencies.length; i++) {
-      final dep = dependencies[i];
 
-      final d = dep is ReactiveNode ? dep.depth : 0;
-      if (d > maxDepth) maxDepth = d;
+    for (final dep in dependencies) {
+      maxDepth = math.max(maxDepth, dep.depth);
     }
 
     _depth = maxDepth + 1;
   }
 
   void dispose() {
-    for (final dep in _dependencies) {
-      dep.removeDependent(this);
+    for (final source in _sources) {
+      source.removeDependent(this);
     }
 
-    _dependencies.clear();
+    _sources.clear();
     _dependents.clear();
   }
 }

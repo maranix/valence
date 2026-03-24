@@ -6,20 +6,20 @@ abstract interface class Graph {
   bool get isTracking;
 
   void beginTracking();
-  List<Node> endTracking();
+  List<Source> endTracking();
 
-  void beginProbe(List<Node> sources);
+  void beginProbe(List<Source> sources);
   bool endProbe(int count);
 
-  void recordSource(Node source);
+  void recordSource(Source source);
 }
 
 final class _GraphImpl implements Graph {
-  List<Node>? _probed;
+  List<Source>? _probed;
   int _cursor = 0;
   bool _consistent = true;
 
-  final List<List<Node>> _trackingStack = [];
+  final List<List<Source>> _trackingStack = [];
 
   @override
   bool get isTracking => _trackingStack.isNotEmpty;
@@ -28,10 +28,10 @@ final class _GraphImpl implements Graph {
   void beginTracking() => _trackingStack.add([]);
 
   @override
-  List<Node> endTracking() => _trackingStack.removeLast();
+  List<Source> endTracking() => _trackingStack.removeLast();
 
   @override
-  void beginProbe(List<Node> sources) {
+  void beginProbe(List<Source> sources) {
     _probed = sources;
     _cursor = 0;
     _consistent = true;
@@ -44,7 +44,7 @@ final class _GraphImpl implements Graph {
   }
 
   @override
-  void recordSource(Node source) {
+  void recordSource(Source source) {
     if (_trackingStack.isEmpty) {
       _validateProbedSouce(source);
       return;
@@ -58,7 +58,7 @@ final class _GraphImpl implements Graph {
     list.add(source);
   }
 
-  void _validateProbedSouce(Node source) {
+  void _validateProbedSouce(Source source) {
     if (_probed == null || !_consistent) return;
 
     if (_cursor >= _probed!.length || !identical(_probed![_cursor], source)) {

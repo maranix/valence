@@ -12,7 +12,7 @@ Store<S> store<S>(
   EqualityCallback<S>? equals,
 }) => Store<S>(initial, scope: scope, equals: equals);
 
-final class Store<S> implements Node {
+final class Store<S> implements Source {
   Store(this._value, {Scope? scope, EqualityCallback<S>? equals})
     : _scope = scope ?? Valence.root,
       _equals = equals ?? defaultEquals {
@@ -24,13 +24,13 @@ final class Store<S> implements Node {
 
   final EqualityCallback<S> _equals;
   final List<S> _history = [];
-  final List<ReactiveNode> _dependents = [];
+  final List<Dependent> _dependents = [];
 
   @override
-  void addDependent(ReactiveNode node) => _dependents.add(node);
+  void addDependent(Dependent node) => _dependents.add(node);
 
   @override
-  void removeDependent(ReactiveNode node) {
+  void removeDependent(Dependent node) {
     final i = _dependents.indexOf(node);
     if (i < 0) return;
 

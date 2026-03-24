@@ -8,14 +8,14 @@ abstract interface class Schedular {
   void beginBatch();
   bool endBatch();
 
-  void enqueue(ReactiveNode node);
+  void enqueue(Dependent node);
   void flush();
 }
 
 final class _SchedularImpl implements Schedular {
   int _batchDepth = 0;
 
-  final List<ReactiveNode> _pendingNodes = [];
+  final List<Dependent> _pendingNodes = [];
 
   @override
   bool get isBatching => _batchDepth > 0;
@@ -30,7 +30,7 @@ final class _SchedularImpl implements Schedular {
   }
 
   @override
-  void enqueue(ReactiveNode node) {
+  void enqueue(Dependent node) {
     if (node.isPending) return;
 
     node.isPending = true;
