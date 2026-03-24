@@ -16,7 +16,7 @@ final class Store<S> implements Source {
   Store(this._value, {Scope? scope, EqualityCallback<S>? equals})
     : _scope = scope ?? Valence.root,
       _equals = equals ?? defaultEquals {
-    _scope.registry.registerSource(this);
+    _scope.addRoot(this);
   }
 
   final Scope _scope;
@@ -25,6 +25,9 @@ final class Store<S> implements Source {
   final EqualityCallback<S> _equals;
   final List<S> _history = [];
   final List<Dependent> _dependents = [];
+
+  @override
+  Iterable<Dependent> get dependents => _dependents;
 
   @override
   void addDependent(Dependent node) => _dependents.add(node);

@@ -1,5 +1,7 @@
+import 'package:graphs/graphs.dart' as graphs;
+
 import 'package:valence/src/engine/graph.dart';
-import 'package:valence/src/engine/registry.dart';
+import 'package:valence/src/engine/node.dart';
 import 'package:valence/src/engine/schedular.dart';
 
 abstract interface class Scope {
@@ -7,20 +9,20 @@ abstract interface class Scope {
 
   Graph get graph;
   Schedular get schedular;
-  Registry get registry;
 
+  void addRoot(Source source);
   void dispose();
 }
 
 final class _ScopeImpl implements Scope {
   _ScopeImpl({Graph? graph, Schedular? schedular})
     : _graph = graph ?? Graph(),
-      _schedular = schedular ?? Schedular(),
-      _registry = Registry();
+      _schedular = schedular ?? Schedular();
 
   final Graph _graph;
   final Schedular _schedular;
-  final Registry _registry;
+
+  final List<Source> _roots = [];
 
   @override
   Graph get graph => _graph;
@@ -29,8 +31,19 @@ final class _ScopeImpl implements Scope {
   Schedular get schedular => _schedular;
 
   @override
-  Registry get registry => _registry;
+  void addRoot(Source source) => _roots.add(source);
 
   @override
-  void dispose() => _registry.dispose();
+  void dispose() {
+    final sorted = graphs.topologicalSort<Node>(
+      _roots,
+      (node) => (node is Source) ? node.dependents : const [],
+    );
+
+    for (final node in sorted.reversed) {
+      node.dispose();
+    }
+
+    _roots.clear();
+  }
 }
