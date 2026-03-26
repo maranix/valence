@@ -1,4 +1,7 @@
-part of 'base.dart';
+import 'package:valence/src/engine/node.dart';
+import 'package:valence/src/engine/scope.dart';
+import 'package:valence/src/primitive/action.dart';
+import 'package:valence/types.dart';
 
 Store<S, A> store<S, A extends Action<S>>(
   S initial, {
@@ -20,14 +23,14 @@ final class Store<S, A extends Action<S>> extends BaseSource<S> {
   void dispatch(A action) {
     assert(!isDisposed, 'Cannot dispatch an action to a disposed Store.');
     assert(
-      !_scope.graph.isTracking,
+      !scope.graph.isTracking,
       'dispatch() called inside a reactive computation.',
     );
 
     action.onDispatch();
 
     final next = action.reduce(_value);
-    if (_equals(_value, next)) return;
+    if (equals(_value, next)) return;
 
     _history.add(_value);
     _value = next;

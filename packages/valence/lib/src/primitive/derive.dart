@@ -1,4 +1,6 @@
-part of 'base.dart';
+import 'package:valence/src/engine/node.dart';
+import 'package:valence/src/engine/scope.dart';
+import 'package:valence/types.dart';
 
 Derive<T> derive<T>(
   ValueCallback<T> fn, {
@@ -41,21 +43,17 @@ final class Derive<T> extends BaseSource<T> with DependentMixin {
     });
 
     // If the value didn't actually change, we just cache and exit cleanly
-    if (_equals(_cachedValue, nextValue)) return;
+    if (equals(_cachedValue, nextValue)) return;
 
     _cachedValue = nextValue;
 
-    _scope.schedular.batch(() {
-      for (var i = 0; i < _dependents.length; i++) {
-        _scope.schedular.enqueue(_dependents[i]);
-      }
-    });
+    notifyDependents();
   }
 
   @override
   void dispose() {
     super.dispose();
 
-    _unsubcribeFromSources();
+    unsubscribeFromSources();
   }
 }

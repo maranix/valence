@@ -1,4 +1,6 @@
-part of 'base.dart';
+import 'package:valence/src/engine/node.dart';
+import 'package:valence/src/engine/scope.dart';
+import 'package:valence/types.dart';
 
 /// Creates a new [Reactor].
 ///

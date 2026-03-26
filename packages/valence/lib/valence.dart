@@ -1,7 +1,9 @@
 library;
 
 export 'src/engine/scope.dart' show Scope;
-export 'src/primitive/base.dart'
-    show Store, store, Reactor, reactor, Derive, derive;
-export 'src/primitive/batch.dart' show Batch, batch;
 export 'src/primitive/action.dart' show Action;
+export 'src/primitive/batch.dart' show Batch, batch;
+export 'src/primitive/derive.dart' show Derive, derive;
+export 'src/primitive/reactor.dart' show Reactor, reactor;
+export 'src/primitive/store.dart' show Store, store;
+
