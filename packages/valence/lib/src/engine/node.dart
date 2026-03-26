@@ -99,10 +99,6 @@ mixin SourceMixin implements Source {
 
   final List<Dependent> _dependents = [];
 
-  final List<VoidCallback> _listeners = [];
-
-  final List<Dependent> _leafDependents = [];
-
   @override
   Iterable<Dependent> get dependents => _dependents;
 
@@ -120,31 +116,16 @@ mixin SourceMixin implements Source {
 
   @override
   void addDependent(Dependent node) {
-    if (node.isLeaf) {
-      _listeners.add(node.recompute);
-      _leafDependents.add(node);
-    } else {
-      _dependents.add(node);
-    }
+    _dependents.add(node);
   }
 
   @override
   void removeDependent(Dependent node) {
-    if (node.isLeaf) {
-      final i = _leafDependents.indexOf(node);
-      if (i < 0) return;
+    final i = _dependents.indexOf(node);
+    if (i < 0) return;
 
-      _listeners[i] = _listeners.last;
-      _listeners.removeLast();
-      _leafDependents[i] = _leafDependents.last;
-      _leafDependents.removeLast();
-    } else {
-      final i = _dependents.indexOf(node);
-      if (i < 0) return;
-
-      _dependents[i] = _dependents.last;
-      _dependents.removeLast();
-    }
+    _dependents[i] = _dependents.last;
+    _dependents.removeLast();
   }
 
   @override
@@ -154,24 +135,14 @@ mixin SourceMixin implements Source {
 
   @override
   void notifyDependents() {
-    if (_dependents.isNotEmpty) {
-      scope.schedular.enqueueAll(_dependents);
-    }
-
-    final leaves = _listeners;
-    final len = leaves.length;
-
-    for (var i = 0; i < len; i++) {
-      leaves[i]();
-    }
+    if (_dependents.isEmpty) return;
+    scope.schedular.enqueueAll(_dependents);
   }
 
   /// Clears the dependents list. Call during disposal.
   @protected
   void clearDependents() {
     _dependents.clear();
-    _listeners.clear();
-    _leafDependents.clear();
   }
 }
 
