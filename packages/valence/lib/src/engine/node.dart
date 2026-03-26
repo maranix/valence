@@ -140,9 +140,7 @@ mixin SourceMixin implements Source {
   @override
   void notifyDependents() {
     if (_dependents.isNotEmpty) {
-      for (final dependent in _dependents) {
-        scope.schedular.enqueue(dependent);
-      }
+      scope.schedular.enqueueAll(_dependents);
     }
 
     for (var i = 0; i < _leafListeners.length; i++) {
@@ -152,7 +150,10 @@ mixin SourceMixin implements Source {
 
   /// Clears the dependents list. Call during disposal.
   @protected
-  void clearDependents() => _dependents.clear();
+  void clearDependents() {
+    _dependents.clear();
+    _leafListeners.clear();
+  }
 }
 
 /// Provides value equality comparison via an [equals] callback.
