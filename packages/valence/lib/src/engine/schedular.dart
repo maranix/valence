@@ -47,7 +47,6 @@ final class _SchedularImpl implements Schedular {
     _flushIfReady();
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void batch(VoidCallback batchFn) {
     _batchDepth++;
@@ -61,13 +60,9 @@ final class _SchedularImpl implements Schedular {
     }
   }
 
+  @pragma('vm:prefer-inline')
   void _enqueueDependent(Dependent node) {
     if (node.isScheduled || node.disposed) return;
-
-    if (node.isLeaf) {
-      node.recompute();
-      return;
-    }
 
     node.isScheduled = true;
     _queue.add(node);
@@ -77,6 +72,7 @@ final class _SchedularImpl implements Schedular {
     if (d > _maxDepth) _maxDepth = d;
   }
 
+  @pragma("vm:prefer-inline")
   void _flushIfReady() {
     if (_queue.isEmpty) return;
     if (isBatching) return;
@@ -108,7 +104,7 @@ final class _SchedularImpl implements Schedular {
         node.recompute();
       }
 
-      _processingQueue = [];
+      _processingQueue.clear();
     }
 
     _isFlushing = false;

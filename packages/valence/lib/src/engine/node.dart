@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:meta/meta.dart';
 import 'package:valence/src/engine/scope.dart';
 import 'package:valence/types.dart';
@@ -20,7 +18,11 @@ abstract interface class Node {
 abstract interface class Source implements Node {
   /// Internal marker used by the Graph for O(1) deduplication.
   int get lastAccessedEpoch;
-  set lastAccessedEpoch(int value);
+  set lastAccessedEpoch(int epoch);
+
+  /// Internal marker used by the dependent to diff source nodes in O(1).
+  int get trackingEpoch;
+  set trackingEpoch(int epoch);
 
   /// The dependents of this source.
   Iterable<Dependent> get dependents;
@@ -93,9 +95,13 @@ mixin SourceMixin implements Source {
 
   int _lastAccessedEpoch = -1;
 
+  int _trackingEpoch = 0;
+
   final List<Dependent> _dependents = [];
 
-  final List<VoidCallback> _leafListeners = [];
+  final List<VoidCallback> _listeners = [];
+
+  final List<Dependent> _leafDependents = [];
 
   @override
   Iterable<Dependent> get dependents => _dependents;
@@ -107,9 +113,16 @@ mixin SourceMixin implements Source {
   set lastAccessedEpoch(int epoch) => _lastAccessedEpoch = epoch;
 
   @override
+  int get trackingEpoch => _trackingEpoch;
+
+  @override
+  set trackingEpoch(int epoch) => _trackingEpoch = epoch;
+
+  @override
   void addDependent(Dependent node) {
     if (node.isLeaf) {
-      _leafListeners.add(node.recompute);
+      _listeners.add(node.recompute);
+      _leafDependents.add(node);
     } else {
       _dependents.add(node);
     }
@@ -118,11 +131,13 @@ mixin SourceMixin implements Source {
   @override
   void removeDependent(Dependent node) {
     if (node.isLeaf) {
-      final i = _leafListeners.indexOf(node.recompute);
+      final i = _leafDependents.indexOf(node);
       if (i < 0) return;
 
-      _leafListeners[i] = _leafListeners.last;
-      _leafListeners.removeLast();
+      _listeners[i] = _listeners.last;
+      _listeners.removeLast();
+      _leafDependents[i] = _leafDependents.last;
+      _leafDependents.removeLast();
     } else {
       final i = _dependents.indexOf(node);
       if (i < 0) return;
@@ -143,8 +158,11 @@ mixin SourceMixin implements Source {
       scope.schedular.enqueueAll(_dependents);
     }
 
-    for (var i = 0; i < _leafListeners.length; i++) {
-      _leafListeners[i]();
+    final leaves = _listeners;
+    final len = leaves.length;
+
+    for (var i = 0; i < len; i++) {
+      leaves[i]();
     }
   }
 
@@ -152,7 +170,8 @@ mixin SourceMixin implements Source {
   @protected
   void clearDependents() {
     _dependents.clear();
-    _leafListeners.clear();
+    _listeners.clear();
+    _leafDependents.clear();
   }
 }
 
@@ -174,6 +193,8 @@ mixin EqualityMixin<T> {
 ///
 /// Requires a concrete [scope] getter to be provided by the class.
 mixin DependencyTrackingMixin implements Dependent {
+  static int _globalTrackingEpoch = 0;
+
   /// The [Scope] this dependent belongs to.
   Scope get scope;
 
@@ -193,34 +214,47 @@ mixin DependencyTrackingMixin implements Dependent {
   /// Unsubscribes this node from all currently tracked [Source]s.
   @protected
   void unsubscribeFromSources() {
-    for (final source in _sources) {
-      source.removeDependent(this);
+    for (var i = 0; i < _sources.length; i++) {
+      _sources[i].removeDependent(this);
     }
     _sources.clear();
   }
 
   void _updateSources(List<Source> sources) {
-    final derives = sources.whereType<Dependent>();
+    if (sources.isEmpty) return;
 
     if (_sourcesUnchanged(sources)) {
-      _updateDepth(derives);
+      _updateDepth(sources);
       return;
     }
 
-    for (final old in _sources) {
-      if (!sources.contains(old)) {
-        old.removeDependent(this);
+    _globalTrackingEpoch += 2;
+    final currTrackingEpoch = _globalTrackingEpoch;
+
+    for (var i = 0; i < sources.length; i++) {
+      sources[i].trackingEpoch = currTrackingEpoch;
+    }
+
+    for (var i = 0; i < _sources.length; i++) {
+      final oldSrc = _sources[i];
+
+      if (oldSrc.trackingEpoch == currTrackingEpoch) {
+        oldSrc.trackingEpoch = currTrackingEpoch + 1;
+      } else {
+        oldSrc.removeDependent(this);
       }
     }
 
-    for (final newSrc in sources) {
-      if (!_sources.contains(newSrc)) {
+    for (var i = 0; i < sources.length; i++) {
+      final newSrc = sources[i];
+
+      if (newSrc.trackingEpoch == currTrackingEpoch) {
         newSrc.addDependent(this);
       }
     }
 
     _sources = sources;
-    _updateDepth(derives);
+    _updateDepth(sources);
   }
 
   bool _sourcesUnchanged(List<Source> sources) {
@@ -235,11 +269,15 @@ mixin DependencyTrackingMixin implements Dependent {
 
   /// Recomputes the [depth] of this node from the maximum depth among
   /// its dependent-typed sources.
-  void _updateDepth(Iterable<Dependent> dependents) {
+  void _updateDepth(List<Source> sources) {
     var maxDepth = 0;
 
-    for (final dependent in dependents) {
-      maxDepth = math.max(dependent.depth, maxDepth);
+    for (var i = 0; i < sources.length; i++) {
+      final src = sources[i];
+      if (src is Dependent) {
+        final d = (src as Dependent).depth;
+        if (d > maxDepth) maxDepth = d;
+      }
     }
 
     _depth = maxDepth + 1;
