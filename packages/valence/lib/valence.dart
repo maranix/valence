@@ -6,4 +6,3 @@ export 'src/primitive/batch.dart' show Batch, batch;
 export 'src/primitive/derive.dart' show Derive, derive;
 export 'src/primitive/reactor.dart' show Reactor, reactor;
 export 'src/primitive/store.dart' show Store, store;
-

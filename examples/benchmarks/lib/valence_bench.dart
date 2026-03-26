@@ -32,6 +32,7 @@ class ValenceDiamondBenchmark extends BenchmarkBase {
   @override
   void setup() {
     s = store(0);
+
     d1 = derive(() => s() + 1);
     d2 = derive(() => s() + 2);
     d3 = derive(() => d1() + d2());

@@ -1,22 +1,49 @@
+import 'package:valence/src/config.dart';
 import 'package:valence/src/engine/node.dart';
 import 'package:valence/src/engine/scope.dart';
 import 'package:valence/types.dart';
+import 'package:valence/utils/equality.dart';
 
+/// Public interface for a derived (computed) reactive value.
+///
+/// Provides read-only access to a lazily computed, memoized value
+/// and lifecycle management.
+abstract interface class Derive<T> {
+  T call();
+  bool get disposed;
+  void dispose();
+}
+
+/// Creates a new [Derive].
 Derive<T> derive<T>(
   ValueCallback<T> fn, {
   Scope? scope,
   EqualityCallback<T>? equals,
-}) => Derive<T>(fn, scope: scope, equals: equals);
+}) => _DeriveImpl<T>(fn, scope: scope, eq: equals);
 
-final class Derive<T> extends BaseSource<T> with DependentMixin {
-  Derive(this._compute, {super.scope, super.equals});
+final class _DeriveImpl<T>
+    with DisposeMixin, SourceMixin, EqualityMixin<T>, DependencyTrackingMixin
+    implements Source, Dependent, Derive<T> {
+  _DeriveImpl(this._compute, {Scope? scope, EqualityCallback<T>? eq})
+    : _scope = scope ?? Valence.root,
+      _equals = eq ?? defaultEquals {
+    _scope.addRoot(this);
+  }
 
   final ValueCallback<T> _compute;
+  final Scope _scope;
+  final EqualityCallback<T> _equals;
 
   late T _cachedValue;
-
   bool _isInitialized = false;
 
+  @override
+  Scope get scope => _scope;
+
+  @override
+  EqualityCallback<T> get equals => _equals;
+
+  @override
   T call() {
     reportRead();
 
@@ -52,8 +79,9 @@ final class Derive<T> extends BaseSource<T> with DependentMixin {
 
   @override
   void dispose() {
-    super.dispose();
-
+    if (disposed) return;
+    markDisposed();
+    clearDependents();
     unsubscribeFromSources();
   }
 }

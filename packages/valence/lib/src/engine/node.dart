@@ -1,18 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:meta/meta.dart';
-import 'package:valence/src/config.dart';
 import 'package:valence/src/engine/scope.dart';
 import 'package:valence/types.dart';
-import 'package:valence/utils/equality.dart';
-
-// ---------------------------------------------------------------------------
-// Interfaces
-// ---------------------------------------------------------------------------
 
 /// Represents a node in the dependency graph.
 abstract interface class Node {
-  bool get isDisposed;
+  bool get disposed;
 
   /// Disposes the node and cleans up any resources it holds.
   void dispose();
@@ -68,51 +62,44 @@ abstract interface class Dependent implements Node {
   void executeTracked(VoidCallback computation);
 }
 
-// ---------------------------------------------------------------------------
-// Base implementations
-// ---------------------------------------------------------------------------
-
-/// Base implementation of [Source] that manages dependents, equality checking,
-/// scope registration, and disposal.
-abstract base class BaseSource<S> implements Source {
-  BaseSource({Scope? scope, EqualityCallback<S>? equals})
-    : _scope = scope ?? Valence.root,
-      _equals = equals ?? defaultEquals {
-    _scope.addRoot(this);
-  }
-
-  final Scope _scope;
-  final EqualityCallback<S> _equals;
-  final List<Dependent> _dependents = [];
-
-  int _lastAccessedEpoch = -1;
-
-  bool _isDisposed = false;
-
-  /// The [Scope] this source belongs to.
-  @protected
-  Scope get scope => _scope;
-
-  /// The equality function used to compare values of type [S].
-  @protected
-  EqualityCallback<S> get equals => _equals;
+/// Manages disposal state for a [Node].
+///
+/// Provides [disposed] tracking and a [markDisposed] method to flag the
+/// node as disposed. The concrete class is responsible for implementing
+/// [dispose] and calling [markDisposed] within it.
+mixin DisposeMixin implements Node {
+  bool _disposed = false;
 
   @override
-  bool get isDisposed => _isDisposed;
+  bool get disposed => _disposed;
+
+  /// Marks this node as disposed.
+  @protected
+  void markDisposed() => _disposed = true;
+}
+
+/// Implements [Source] dependent-management and graph integration.
+///
+/// Provides dependent list management ([addDependent], [removeDependent],
+/// [notifyDependents]), read-tracking ([reportRead], [lastAccessedEpoch]),
+/// and a protected [clearDependents] for use during disposal.
+///
+/// Requires a concrete [scope] getter to be provided by the class.
+mixin SourceMixin implements Source {
+  /// The [Scope] this source belongs to.
+  Scope get scope;
+
+  final List<Dependent> _dependents = [];
+  int _lastAccessedEpoch = -1;
+
+  @override
+  Iterable<Dependent> get dependents => _dependents;
 
   @override
   int get lastAccessedEpoch => _lastAccessedEpoch;
 
   @override
   set lastAccessedEpoch(int epoch) => _lastAccessedEpoch = epoch;
-
-  @override
-  void reportRead() {
-    _scope.graph.record(this);
-  }
-
-  @override
-  Iterable<Dependent> get dependents => _dependents;
 
   @override
   void addDependent(Dependent node) => _dependents.add(node);
@@ -127,61 +114,47 @@ abstract base class BaseSource<S> implements Source {
   }
 
   @override
+  void reportRead() {
+    scope.graph.record(this);
+  }
+
+  @override
   void notifyDependents() {
-    _scope.schedular.batch(() {
+    scope.schedular.batch(() {
       for (var i = 0; i < _dependents.length; i++) {
-        _scope.schedular.enqueue(_dependents[i]);
+        scope.schedular.enqueue(_dependents[i]);
       }
     });
   }
 
-  @override
-  @mustCallSuper
-  void dispose() {
-    if (_isDisposed) return;
-
-    _isDisposed = true;
-    _dependents.clear();
-  }
+  /// Clears the dependents list. Call during disposal.
+  @protected
+  void clearDependents() => _dependents.clear();
 }
 
-/// Base implementation of [Dependent] that provides scope-bound disposal
-/// and automatic source unsubscription via [DependentMixin].
-abstract base class BaseDependent with DependentMixin {
-  BaseDependent({Scope? scope}) : _internalScope = scope ?? Valence.root;
-
-  final Scope _internalScope;
-
-  bool _isDisposed = false;
-
-  @override
-  Scope get scope => _internalScope;
-
-  @override
-  bool get isDisposed => _isDisposed;
-
-  @override
-  @mustCallSuper
-  void dispose() {
-    if (_isDisposed) return;
-
-    _isDisposed = true;
-    unsubscribeFromSources();
-  }
+/// Provides value equality comparison via an [equals] callback.
+///
+/// The concrete class must supply the [equals] getter, typically from
+/// a constructor parameter or a default like [defaultEquals].
+mixin EqualityMixin<T> {
+  /// The equality function used to compare values of type [T].
+  @protected
+  EqualityCallback<T> get equals;
 }
 
-/// Mixin that implements [Dependent] dependency-tracking behaviour.
+/// Implements [Dependent] dependency-tracking behaviour.
 ///
 /// Provides [executeTracked] which records which [Source]s are read during
 /// a computation and automatically maintains the subscription set and graph
-/// [depth].
-mixin DependentMixin implements Dependent {
+/// [depth]. Exposes [unsubscribeFromSources] for use during disposal.
+///
+/// Requires a concrete [scope] getter to be provided by the class.
+mixin DependencyTrackingMixin implements Dependent {
+  /// The [Scope] this dependent belongs to.
   Scope get scope;
 
   int _depth = 0;
-
   bool _isScheduled = false;
-
   List<Source> _sources = [];
 
   @override

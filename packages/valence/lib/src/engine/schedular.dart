@@ -24,7 +24,7 @@ final class _SchedularImpl implements Schedular {
 
   @override
   void enqueue(Dependent node) {
-    if (node.isScheduled || node.isDisposed) return;
+    if (node.isScheduled || node.disposed) return;
 
     node.isScheduled = true;
     _queue.add(node);
@@ -68,7 +68,7 @@ final class _SchedularImpl implements Schedular {
 
         for (var i = 0; i < batch.length; i++) {
           final node = batch[i];
-          if (!node.isScheduled || node.isDisposed) continue;
+          if (!node.isScheduled || node.disposed) continue;
 
           node.isScheduled = false;
           node.recompute();
