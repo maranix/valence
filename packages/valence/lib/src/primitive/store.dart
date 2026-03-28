@@ -24,8 +24,7 @@ Store<S, A> store<S, A extends Action<S>>(
   EqualityCallback<S>? equals,
 }) => _StoreImpl<S, A>(initial, scope: scope, eq: equals);
 
-final class _StoreImpl<S, A extends Action<S>>
-    with DisposeMixin, SourceMixin, EqualityMixin<S>
+final class _StoreImpl<S, A extends Action<S>> extends OriginNode<S>
     implements Store<S, A> {
   _StoreImpl(this._value, {Scope? scope, EqualityCallback<S>? eq})
     : _scope = scope ?? Valence.root,
@@ -38,9 +37,6 @@ final class _StoreImpl<S, A extends Action<S>>
 
   S _value;
   final List<S> _history = [];
-
-  @override
-  int get depth => 0;
 
   @override
   Scope get scope => _scope;
@@ -77,12 +73,5 @@ final class _StoreImpl<S, A extends Action<S>>
     _value = _history.removeLast();
 
     notifyDependents();
-  }
-
-  @override
-  void dispose() {
-    if (disposed) return;
-    markDisposed();
-    clearDependents();
   }
 }

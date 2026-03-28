@@ -31,7 +31,7 @@ Reactor reactor(
 /// automatically tracking and re-subscribing to whatever sources
 /// are read during the latest execution using O(1) epoch deduplication.
 /// {@endtemplate}
-final class _ReactorImpl with DisposeMixin, SubscriberMixin implements Reactor {
+final class _ReactorImpl extends ObserverNode implements Reactor {
   _ReactorImpl(this._fn, {Scope? scope}) : _scope = scope ?? Valence.root {
     recompute();
   }
@@ -40,20 +40,10 @@ final class _ReactorImpl with DisposeMixin, SubscriberMixin implements Reactor {
   final Scope _scope;
 
   @override
-  bool get isLeaf => true;
-
-  @override
   Scope get scope => _scope;
 
   @override
   void recompute() {
     executeTracked(_fn);
-  }
-
-  @override
-  void dispose() {
-    if (disposed) return;
-    markDisposed();
-    unsubscribeFromSources();
   }
 }

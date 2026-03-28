@@ -19,24 +19,19 @@ Derive<T> derive<T>(
   EqualityCallback<T>? equals,
 }) => _DeriveImpl<T>(fn, scope: scope, eq: equals);
 
-final class _DeriveImpl<T>
-    with DisposeMixin, SourceMixin, EqualityMixin<T>, SubscriberMixin
-    implements Derive<T> {
+final class _DeriveImpl<T> extends RelayNode<T> implements Derive<T> {
   _DeriveImpl(this._compute, {Scope? scope, EqualityCallback<T>? eq})
     : _scope = scope ?? Valence.root,
       _equals = eq ?? defaultEquals {
     _scope.addRoot(this);
   }
 
-  final ValueCallback<T> _compute;
   final Scope _scope;
+  final ValueCallback<T> _compute;
   final EqualityCallback<T> _equals;
 
   late T _cachedValue;
   bool _isInitialized = false;
-
-  @override
-  bool get isLeaf => false;
 
   @override
   Scope get scope => _scope;
@@ -76,13 +71,5 @@ final class _DeriveImpl<T>
     _cachedValue = nextValue;
 
     notifyDependents();
-  }
-
-  @override
-  void dispose() {
-    if (disposed) return;
-    markDisposed();
-    clearDependents();
-    unsubscribeFromSources();
   }
 }

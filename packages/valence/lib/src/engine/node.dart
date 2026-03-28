@@ -2,6 +2,48 @@ import 'package:meta/meta.dart';
 import 'package:valence/src/engine/scope.dart';
 import 'package:valence/types.dart';
 
+abstract base class BaseNode implements Node {}
+
+abstract base class OriginNode<T> extends BaseNode
+    with SourceMixin, DisposeMixin, EqualityMixin<T> {
+  @override
+  int get depth => 0;
+
+  @override
+  void dispose() {
+    if (disposed) return;
+    markDisposed();
+    clearDependents();
+  }
+}
+
+abstract base class RelayNode<T> extends BaseNode
+    with SourceMixin, SubscriberMixin, DisposeMixin, EqualityMixin<T> {
+  @override
+  bool get isLeaf => false;
+
+  @override
+  void dispose() {
+    if (disposed) return;
+    markDisposed();
+    clearDependents();
+    unsubscribeFromSources();
+  }
+}
+
+abstract base class ObserverNode extends BaseNode
+    with SubscriberMixin, DisposeMixin {
+  @override
+  bool get isLeaf => true;
+
+  @override
+  void dispose() {
+    if (disposed) return;
+    markDisposed();
+    unsubscribeFromSources();
+  }
+}
+
 /// Represents a node in the dependency graph.
 abstract interface class Node {
   /// The depth of this node in the dependency graph.
