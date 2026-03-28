@@ -48,6 +48,12 @@ final class _DeriveImpl<T> extends RelayNode<T> implements Derive<T> {
       executeTracked(() {
         _cachedValue = _compute();
       });
+
+      assert(
+        _cachedValue is! Node,
+        'Type Error: Illegal attempt to return a reactive Node from a Derive computation.',
+      );
+
       _isInitialized = true;
     }
 
