@@ -22,7 +22,7 @@ Derive<T> derive<T>(
 }) => _DeriveImpl<T>(fn, scope: scope, eq: equals);
 
 final class _DeriveImpl<T>
-    with DisposeMixin, SourceMixin, EqualityMixin<T>, DependencyTrackingMixin
+    with DisposeMixin, SourceMixin, EqualityMixin<T>, SubscriberMixin
     implements Source, Dependent, Derive<T> {
   _DeriveImpl(this._compute, {Scope? scope, EqualityCallback<T>? eq})
     : _scope = scope ?? Valence.root,

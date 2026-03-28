@@ -32,7 +32,7 @@ Reactor reactor(
 /// are read during the latest execution using O(1) epoch deduplication.
 /// {@endtemplate}
 final class _ReactorImpl
-    with DisposeMixin, DependencyTrackingMixin
+    with DisposeMixin, SubscriberMixin
     implements Dependent, Reactor {
   _ReactorImpl(this._fn, {Scope? scope}) : _scope = scope ?? Valence.root {
     recompute();

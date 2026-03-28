@@ -89,7 +89,7 @@ mixin DisposeMixin implements Node {
 /// and a protected [clearDependents] for use during disposal.
 ///
 /// Requires a concrete [scope] getter to be provided by the class.
-mixin SourceMixin implements Source {
+mixin SourceMixin on Node implements Source {
   /// The [Scope] this source belongs to.
   Scope get scope;
 
@@ -150,7 +150,7 @@ mixin SourceMixin implements Source {
 ///
 /// The concrete class must supply the [equals] getter, typically from
 /// a constructor parameter or a default like [defaultEquals].
-mixin EqualityMixin<T> {
+mixin EqualityMixin<T> on Node {
   /// The equality function used to compare values of type [T].
   @protected
   EqualityCallback<T> get equals;
@@ -163,7 +163,7 @@ mixin EqualityMixin<T> {
 /// [depth]. Exposes [unsubscribeFromSources] for use during disposal.
 ///
 /// Requires a concrete [scope] getter to be provided by the class.
-mixin DependencyTrackingMixin implements Dependent {
+mixin SubscriberMixin on Node implements Dependent {
   static int _globalTrackingEpoch = 0;
 
   /// The [Scope] this dependent belongs to.
