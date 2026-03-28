@@ -300,9 +300,12 @@ mixin SubscriberMixin on Node implements Dependent {
     if (newDepth > _depth) {
       _depth = newDepth;
 
-      if (this is Source) {
-        (this as Source).propagateDepth(newDepth);
-      }
+      assert(
+        this is Source,
+        'Type Error: Illegal attempt to propagate depth from a non-Source node.',
+      );
+
+      (this as Source).propagateDepth(newDepth);
     }
   }
 
