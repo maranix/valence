@@ -27,7 +27,15 @@ Store<S, A> store<S, A extends Action<S>>(
 final class _StoreImpl<S, A extends Action<S>> extends OriginNode<S>
     implements Store<S, A> {
   _StoreImpl(this._value, {Scope? scope, EqualityCallback<S>? eq})
-    : _scope = scope ?? Valence.root,
+    : assert(
+        _value is! Node,
+        'Invalid Store state: $_value (${_value.runtimeType}).'
+        '\n'
+        '\nStores must only contain data.'
+        '\n'
+        '\nUse `derive` to compose nodes that react changes in store.',
+      ),
+      _scope = scope ?? Valence.root,
       _equals = eq ?? defaultEquals {
     _scope.addRoot(this);
   }
