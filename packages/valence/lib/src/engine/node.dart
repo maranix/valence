@@ -2,10 +2,19 @@ import 'package:meta/meta.dart';
 import 'package:valence/src/engine/scope.dart';
 import 'package:valence/types.dart';
 
-abstract base class BaseNode implements Node {}
+abstract base class BaseNode implements Node {
+  BaseNode({String? debugLabel}) : _debugLabel = debugLabel;
+
+  final String? _debugLabel;
+
+  @override
+  String get debugLabel => _debugLabel ?? runtimeType.toString();
+}
 
 abstract base class OriginNode<T> extends BaseNode
     with SourceMixin, DisposeMixin, EqualityMixin<T> {
+  OriginNode({super.debugLabel});
+
   @override
   int get depth => 0;
 
@@ -19,6 +28,8 @@ abstract base class OriginNode<T> extends BaseNode
 
 abstract base class RelayNode<T> extends BaseNode
     with SourceMixin, SubscriberMixin, DisposeMixin, EqualityMixin<T> {
+  RelayNode({super.debugLabel});
+
   @override
   void dispose() {
     if (disposed) return;
@@ -30,6 +41,8 @@ abstract base class RelayNode<T> extends BaseNode
 
 abstract base class ObserverNode extends BaseNode
     with SubscriberMixin, DisposeMixin {
+  ObserverNode({super.debugLabel});
+
   @override
   void dispose() {
     if (disposed) return;
@@ -40,6 +53,8 @@ abstract base class ObserverNode extends BaseNode
 
 /// Represents a node in the dependency graph.
 abstract interface class Node {
+  String get debugLabel;
+
   /// The depth of this node in the dependency graph.
   ///
   /// This is used for topological sorting during the update phase to ensure
@@ -102,6 +117,16 @@ abstract interface class Dependent implements Node {
   void executeTracked(VoidCallback computation);
 
   void updateDepth(int depth);
+}
+
+/// Provides value equality comparison via an [equals] callback.
+///
+/// The concrete class must supply the [equals] getter, typically from
+/// a constructor parameter or a default like [defaultEquals].
+mixin EqualityMixin<T> on Node {
+  /// The equality function used to compare values of type [T].
+  @protected
+  EqualityCallback<T> get equals;
 }
 
 /// Manages disposal state for a [Node].
@@ -191,16 +216,6 @@ mixin SourceMixin on Node implements Source {
   void clearDependents() {
     _dependents.clear();
   }
-}
-
-/// Provides value equality comparison via an [equals] callback.
-///
-/// The concrete class must supply the [equals] getter, typically from
-/// a constructor parameter or a default like [defaultEquals].
-mixin EqualityMixin<T> on Node {
-  /// The equality function used to compare values of type [T].
-  @protected
-  EqualityCallback<T> get equals;
 }
 
 /// Implements [Dependent] dependency-tracking behaviour.

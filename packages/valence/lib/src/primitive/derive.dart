@@ -17,12 +17,17 @@ Derive<T> derive<T>(
   ValueCallback<T> fn, {
   Scope? scope,
   EqualityCallback<T>? equals,
-}) => _DeriveImpl<T>(fn, scope: scope, eq: equals);
+  String? debugLabel,
+}) => _DeriveImpl<T>(fn, scope: scope, eq: equals, debugLabel: debugLabel);
 
 final class _DeriveImpl<T> extends RelayNode<T> implements Derive<T> {
-  _DeriveImpl(this._compute, {Scope? scope, EqualityCallback<T>? eq})
-    : _scope = scope ?? Valence.root,
-      _equals = eq ?? defaultEquals {
+  _DeriveImpl(
+    this._compute, {
+    Scope? scope,
+    EqualityCallback<T>? eq,
+    super.debugLabel,
+  }) : _scope = scope ?? Valence.root,
+       _equals = eq ?? defaultEquals {
     _scope.addRoot(this);
   }
 

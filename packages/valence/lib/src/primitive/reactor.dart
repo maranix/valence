@@ -18,7 +18,8 @@ abstract interface class Reactor {
 Reactor reactor(
   VoidCallback fn, {
   Scope? scope,
-}) => _ReactorImpl(fn, scope: scope);
+  String? debugLabel,
+}) => _ReactorImpl(fn, scope: scope, debugLabel: debugLabel);
 
 /// {@template valence.Reactor}
 /// A terminal node in the reactive graph that runs a side effect.
@@ -32,7 +33,8 @@ Reactor reactor(
 /// are read during the latest execution using O(1) epoch deduplication.
 /// {@endtemplate}
 final class _ReactorImpl extends ObserverNode implements Reactor {
-  _ReactorImpl(this._fn, {Scope? scope}) : _scope = scope ?? Valence.root {
+  _ReactorImpl(this._fn, {Scope? scope, super.debugLabel})
+    : _scope = scope ?? Valence.root {
     recompute();
   }
 

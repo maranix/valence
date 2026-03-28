@@ -22,20 +22,25 @@ Store<S, A> store<S, A extends Action<S>>(
   S initial, {
   Scope? scope,
   EqualityCallback<S>? equals,
-}) => _StoreImpl<S, A>(initial, scope: scope, eq: equals);
+  String? debugLabel,
+}) => _StoreImpl<S, A>(initial, scope: scope, eq: equals, debugLabel: debugLabel);
 
 final class _StoreImpl<S, A extends Action<S>> extends OriginNode<S>
     implements Store<S, A> {
-  _StoreImpl(this._value, {Scope? scope, EqualityCallback<S>? eq})
-    : assert(
-        _value is! Node,
-        'Type Error: Illegal attempt to store a reactive Node as state.'
-        '\n'
-        '\nStore, Derive, and Reaction define the graph structure and cannot'
-        '\nbe contained within another Store. To combine sources, use a Derive instead.',
-      ),
-      _scope = scope ?? Valence.root,
-      _equals = eq ?? defaultEquals {
+  _StoreImpl(
+    this._value, {
+    Scope? scope,
+    EqualityCallback<S>? eq,
+    super.debugLabel,
+  }) : assert(
+         _value is! Node,
+         'Type Error: Illegal attempt to store a reactive Node as state.'
+         '\n'
+         '\nStore, Derive, and Reaction define the graph structure and cannot'
+         '\nbe contained within another Store. To combine sources, use a Derive instead.',
+       ),
+       _scope = scope ?? Valence.root,
+       _equals = eq ?? defaultEquals {
     _scope.addRoot(this);
   }
 
