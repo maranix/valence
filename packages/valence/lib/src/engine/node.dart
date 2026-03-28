@@ -86,6 +86,8 @@ abstract interface class Source implements Node {
 
   /// Reports to the current scope's graph that this source was read.
   void reportRead();
+
+  void propagateDepth(int depth);
 }
 
 /// Represents a node that depends on one or more [Source]s and [Dependent]s.
@@ -106,6 +108,8 @@ abstract interface class Dependent implements Node {
   /// Wraps a [computation], tracks any Sources read during its execution,
   /// and automatically updates the dependency subscriptions.
   void executeTracked(VoidCallback computation);
+
+  void updateDepth(int depth);
 }
 
 /// Manages disposal state for a [Node].
@@ -173,6 +177,15 @@ mixin SourceMixin on Node implements Source {
   @override
   void reportRead() {
     scope.graph.record(this);
+  }
+
+  /// Pushes a new minimum depth to all dependents.
+  /// If a dependent's depth is already higher, it ignores it.
+  @override
+  void propagateDepth(int newDepth) {
+    for (var i = 0; i < _dependents.length; i++) {
+      _dependents[i].updateDepth(newDepth);
+    }
   }
 
   @override
@@ -290,7 +303,31 @@ mixin SubscriberMixin on Node implements Dependent {
       if (src.depth > maxDepth) maxDepth = src.depth;
     }
 
-    _depth = maxDepth + 1;
+    final newDepth = maxDepth + 1;
+
+    if (newDepth > _depth) {
+      _depth = newDepth;
+
+      if (this is Source) {
+        (this as Source).propagateDepth(newDepth);
+      }
+    }
+  }
+
+  @override
+  void updateDepth(int depth) {
+    assert(
+      _depth < 100,
+      'Circular dependency detected! Depth exceeded 100 levels.',
+    );
+
+    if (depth >= _depth) {
+      _depth = depth + 1;
+
+      if (this is Source) {
+        (this as Source).propagateDepth(_depth);
+      }
+    }
   }
 
   @override
