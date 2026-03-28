@@ -29,11 +29,10 @@ final class _StoreImpl<S, A extends Action<S>> extends OriginNode<S>
   _StoreImpl(this._value, {Scope? scope, EqualityCallback<S>? eq})
     : assert(
         _value is! Node,
-        'Invalid Store state: $_value (${_value.runtimeType}).'
+        'Type Error: Illegal attempt to store a reactive Node as state.'
         '\n'
-        '\nStores must only contain data.'
-        '\n'
-        '\nUse `derive` to compose nodes that react changes in store.',
+        '\nStore, Derive, and Reaction define the graph structure and cannot'
+        '\nbe contained within another Store. To combine sources, use a Derive instead.',
       ),
       _scope = scope ?? Valence.root,
       _equals = eq ?? defaultEquals {
@@ -63,7 +62,10 @@ final class _StoreImpl<S, A extends Action<S>> extends OriginNode<S>
     assert(!disposed, 'Cannot dispatch an action to a disposed Store.');
     assert(
       !scope.graph.isTracking,
-      'dispatch() called inside a reactive computation.',
+      'Type Error: Illegal attempt to dispatch an action from within a reactive computation.'
+      '\n'
+      '\nDispatching actions from within a reactive computation can lead to'
+      '\nnon-deterministic behavior and infinite loops.',
     );
 
     final next = action.reduce(_value);
