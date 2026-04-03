@@ -80,6 +80,14 @@ abstract base class SelectorNode<T, S> extends Node
     _cachedValue = nextVal;
 
     _scope.scheduler.scheduleNodes(downstreamNodes);
+
+    _notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _listeners.clear();
+    super.dispose();
   }
 }
 
@@ -102,6 +110,14 @@ abstract base class RelayNode<T> extends Node
 
     _commitDeps();
     _scope.scheduler.scheduleNodes(downstreamNodes);
+
+    _notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _listeners.clear();
+    super.dispose();
   }
 }
 

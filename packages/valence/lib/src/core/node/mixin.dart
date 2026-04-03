@@ -13,6 +13,19 @@ mixin ListenableNode<T> on Node implements Listenable<T> {
 
   @override
   T get value => _cachedValue;
+
+  final List<void Function(T)> _listeners = [];
+
+  void addListener(void Function(T) fn) => _listeners.add(fn);
+
+  void removeListener(void Function(T) fn) => _listeners.remove(fn);
+
+  void _notifyListeners() {
+    if (_listeners.isEmpty) return;
+    for (int i = 0; i < _listeners.length; i++) {
+      _listeners[i](_cachedValue);
+    }
+  }
 }
 
 mixin SchedulableNode on Node {

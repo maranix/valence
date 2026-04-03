@@ -10,6 +10,10 @@ Derive<T> derive<T>(
 abstract interface class Derive<T> implements Listenable<T> {
   T call();
 
+  void addListener(void Function(T) fn);
+
+  void removeListener(void Function(T) fn);
+
   void dispose();
 }
 

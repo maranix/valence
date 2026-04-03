@@ -13,10 +13,15 @@ abstract interface class Store<S, A extends Action<S>> {
   Select<R> select<R>(R Function(S) fn, {String? label});
 
   void dispatch(A action);
+
   void dispose();
 }
 
 abstract interface class Select<T> implements Listenable<T> {
+  void addListener(void Function(T) fn);
+
+  void removeListener(void Function(T) fn);
+
   void dispose();
 }
 
