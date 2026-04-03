@@ -14,18 +14,24 @@ abstract interface class NodeScheduler {
 final class _NodeSchedulerImpl implements NodeScheduler {
   _NodeSchedulerImpl();
 
-  final PriorityQueue<SchedulableNode> _queue = .new(
-    (a, b) => a.depth.compareTo(b.depth),
-  );
+  int _maxDepth = 100;
+  int _lowestQueuedDepth = 999999;
+
+  final List<List<SchedulableNode>> _buckets = .filled(100, []);
 
   bool _flushing = false;
 
   @override
   void scheduleNode(SchedulableNode node) {
     if (node.isScheduled) return;
-
     node.isScheduled = true;
-    _queue.add(node);
+
+    final depth = node.depth;
+    _buckets[depth].add(node);
+
+    if (depth < _lowestQueuedDepth) {
+      _lowestQueuedDepth = depth;
+    }
 
     _tryFlush();
   }
@@ -34,9 +40,14 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   void scheduleNodes(Iterable<SchedulableNode> nodes) {
     for (final node in nodes) {
       if (node.isScheduled) continue;
-
       node.isScheduled = true;
-      _queue.add(node);
+
+      final depth = node.depth;
+      _buckets[depth].add(node);
+
+      if (depth < _lowestQueuedDepth) {
+        _lowestQueuedDepth = depth;
+      }
     }
 
     _tryFlush();
@@ -53,13 +64,18 @@ final class _NodeSchedulerImpl implements NodeScheduler {
 
     _flushing = true;
 
-    while (_queue.isNotEmpty) {
-      final node = _queue.removeFirst();
-      node.isScheduled = false;
+    for (var d = _lowestQueuedDepth; d < _maxDepth; d++) {
+      final bucket = _buckets[d];
 
-      node.refresh();
+      while (bucket.isNotEmpty) {
+        final node = bucket.removeLast();
+        node.isScheduled = false;
+
+        node.refresh();
+      }
     }
 
+    _lowestQueuedDepth = 999999;
     _flushing = false;
   }
 }
