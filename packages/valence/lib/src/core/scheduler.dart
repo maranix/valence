@@ -24,7 +24,7 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   bool _flushing = false;
   bool get _batching => _batchDepth > 0;
 
-  final List<List<SchedulableNode>> _buckets = .filled(100, []);
+  final List<List<SchedulableNode>> _buckets = .generate(100, (_) => []);
 
   @override
   void scheduleNode(SchedulableNode node) {
