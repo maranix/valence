@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:valence/src/constants.dart';
 import 'package:valence/src/core/node/nodes.dart';
 
 abstract interface class NodeScheduler {
@@ -92,9 +93,18 @@ final class _NodeSchedulerImpl implements NodeScheduler {
     if (_flushing) return;
     _flushing = true;
 
+    int i = 0;
     int d = _lowestQueuedDepth;
 
     while (d < _buckets.length) {
+      if (++i > Valence.maxCircularDepedencyIteration) {
+        _flushing = false;
+        throw StateError(
+          'Valence: Circular dependency detected or infinite update loop. '
+          'The scheduler exceeded ${Valence.maxCircularDepedencyIteration} iterations.',
+        );
+      }
+
       final bucket = _buckets[d];
 
       if (bucket.isEmpty) {
