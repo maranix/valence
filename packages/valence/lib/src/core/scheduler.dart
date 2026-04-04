@@ -15,9 +15,7 @@ abstract interface class NodeScheduler {
 final class _NodeSchedulerImpl implements NodeScheduler {
   _NodeSchedulerImpl();
 
-  int _maxDepth = 100;
-  int _lowestQueuedDepth = 999999;
-
+  int _lowestQueuedDepth = 0;
   int _batchDepth = 0;
 
   bool _flushing = false;
@@ -92,21 +90,30 @@ final class _NodeSchedulerImpl implements NodeScheduler {
 
   void _flush() {
     if (_flushing) return;
-
     _flushing = true;
 
-    for (var d = _lowestQueuedDepth; d < _maxDepth; d++) {
+    int d = _lowestQueuedDepth;
+
+    while (d < _buckets.length) {
       final bucket = _buckets[d];
 
-      while (bucket.isNotEmpty) {
-        final node = bucket.removeLast();
-        node.isScheduled = false;
+      if (bucket.isEmpty) {
+        d++;
+        _lowestQueuedDepth = d;
+        continue;
+      }
 
-        node.refresh();
+      final node = bucket.removeLast();
+      node.isScheduled = false;
+
+      node.refresh();
+
+      if (_lowestQueuedDepth < d) {
+        d = _lowestQueuedDepth;
       }
     }
 
-    _lowestQueuedDepth = 999999;
+    _lowestQueuedDepth = _buckets.length;
     _flushing = false;
   }
 }
