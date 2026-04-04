@@ -23,11 +23,7 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   bool _flushing = false;
   bool get _batching => _batchDepth > 0;
 
-  final List<List<SchedulableNode>> _buckets = .generate(
-    100,
-    (_) => [],
-    growable: false,
-  );
+  final List<List<SchedulableNode>> _buckets = [];
 
   @override
   void scheduleNode(SchedulableNode node) {
@@ -35,6 +31,9 @@ final class _NodeSchedulerImpl implements NodeScheduler {
     node.isScheduled = true;
 
     final depth = node.depth;
+
+    _ensureBucketCapacity(depth);
+
     _buckets[depth].add(node);
 
     if (depth < _lowestQueuedDepth) {
@@ -51,6 +50,9 @@ final class _NodeSchedulerImpl implements NodeScheduler {
       node.isScheduled = true;
 
       final depth = node.depth;
+
+      _ensureBucketCapacity(depth);
+
       _buckets[depth].add(node);
 
       if (depth < _lowestQueuedDepth) {
@@ -73,6 +75,12 @@ final class _NodeSchedulerImpl implements NodeScheduler {
       if (!_batching) {
         _tryFlush();
       }
+    }
+  }
+
+  void _ensureBucketCapacity(int depth) {
+    while (_buckets.length <= depth) {
+      _buckets.add([]);
     }
   }
 
