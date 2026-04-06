@@ -87,3 +87,11 @@ mixin Schedulable on Node, UpstreamChain {
 
   void refresh();
 }
+
+mixin Lazy {
+  bool _initialized = false;
+
+  void markInitialized() {
+    _initialized = true;
+  }
+}

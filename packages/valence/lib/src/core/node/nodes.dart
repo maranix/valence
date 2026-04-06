@@ -58,10 +58,9 @@ abstract base class SourceNode<T, A extends Action<T>> extends Node
 }
 
 abstract base class SelectorNode<T, S> extends Node
-    with Value<T>, Listener<T>, DownstreamChain<Schedulable> {
+    with Value<T>, Listener<T>, DownstreamChain<Schedulable>, Lazy {
   SelectorNode(this._store, this._fn, {Scope? scope, super.label})
     : super(scope: scope ?? _store._scope) {
-    _value = _fn(_store._state);
     _store.downstream.add(this);
   }
 
@@ -71,10 +70,23 @@ abstract base class SelectorNode<T, S> extends Node
 
   SourceNode<S, Action<S>> get store => _store;
 
+  @override
+  T call() {
+    if (!_initialized) {
+      _value = _fn(_store._state);
+      markInitialized();
+    }
+
+    return super.call();
+  }
+
   void notify() {
+    // There is no need to refresh this node since its value was never read
+    if (!_initialized) return;
+
     final nextVal = _fn(_store._state);
 
-    if (identical(nextVal, _value)) return;
+    if (_initialized && identical(nextVal, _value)) return;
 
     _value = nextVal;
 
@@ -96,16 +108,28 @@ abstract base class RelayNode<T> extends Node
         Listener<T>,
         DownstreamChain<Schedulable>,
         UpstreamChain,
-        Schedulable {
-  RelayNode(this._fn, {super.scope, super.label}) {
-    _value = _fn(_listen);
-    _commitDeps();
-  }
+        Schedulable,
+        Lazy {
+  RelayNode(this._fn, {super.scope, super.label});
 
   final T Function(S Function<S>(Subscribable<S>) sub) _fn;
 
   @override
+  T call() {
+    if (!_initialized) {
+      _value = _fn(_listen);
+      _commitDeps();
+      markInitialized();
+    }
+
+    return super.call();
+  }
+
+  @override
   void refresh() {
+    // There is no need to refresh this node since its value was never read
+    if (!_initialized) return;
+
     _value = _fn(_listen);
 
     _commitDeps();
