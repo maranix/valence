@@ -18,27 +18,27 @@ final class _NodeRegistryImpl implements NodeRegistry {
 
   @override
   void destroy(Node node) {
-    if (node is Upstream) {
-      for (final parent in node.upstreamNodes.toList()) {
-        // Remove itself from the parent nodes downstreamNodes list
-        if (parent is Downstream) {
-          parent.downstreamNodes.remove(node);
+    if (node is UpstreamChain) {
+      for (final parent in node.upstream.toList()) {
+        // Remove itself from the parent nodes downstream list
+        if (parent is DownstreamChain) {
+          parent.downstream.remove(node);
         }
       }
 
-      node.upstreamNodes.clear();
+      node.upstream.clear();
     }
 
     if (node is SelectorNode) {
-      // Remove itself from the list of downstreamNodes from the Store it was dependent on from.
-      node.store.downstreamNodes.remove(node);
+      // Remove itself from the list of downstream from the Store it was dependent on from.
+      node.store.downstream.remove(node);
     }
 
     List<Node> children = [];
 
-    if (node is Downstream) {
-      children = node.downstreamNodes.toList();
-      node.downstreamNodes.clear();
+    if (node is DownstreamChain) {
+      children = node.downstream.toList();
+      node.downstream.clear();
     }
 
     _nodes.remove(node);

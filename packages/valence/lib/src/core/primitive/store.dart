@@ -7,7 +7,7 @@ Store<S, A> store<S, A extends Action<S>>(
   S val, {
   ValenceScope? scope,
   String? label,
-}) => _StoreImpl(val, scope: scope ?? Valence.rootScope, label: label);
+}) => _StoreImpl(val, scope: scope ?? Valence.scope, label: label);
 
 abstract interface class Store<S, A extends Action<S>> {
   Select<R> select<R>(R Function(S) fn, {String? label});

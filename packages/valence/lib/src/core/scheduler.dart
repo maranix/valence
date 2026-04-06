@@ -6,9 +6,9 @@ import 'package:valence/src/core/node/nodes.dart';
 abstract interface class NodeScheduler {
   factory NodeScheduler() => _NodeSchedulerImpl();
 
-  void scheduleNode(SchedulableNode node);
+  void scheduleNode(Schedulable node);
 
-  void scheduleNodes(Iterable<SchedulableNode> nodes);
+  void scheduleNodes(Iterable<Schedulable> nodes);
 
   void batch(void Function() fn);
 }
@@ -22,10 +22,10 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   bool _flushing = false;
   bool get _batching => _batchDepth > 0;
 
-  final List<List<SchedulableNode>> _buckets = [];
+  final List<List<Schedulable>> _buckets = [];
 
   @override
-  void scheduleNode(SchedulableNode node) {
+  void scheduleNode(Schedulable node) {
     if (node.isScheduled) return;
     node.isScheduled = true;
 
@@ -43,7 +43,7 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   }
 
   @override
-  void scheduleNodes(Iterable<SchedulableNode> nodes) {
+  void scheduleNodes(Iterable<Schedulable> nodes) {
     for (final node in nodes) {
       if (node.isScheduled) continue;
       node.isScheduled = true;
