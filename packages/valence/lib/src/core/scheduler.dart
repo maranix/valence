@@ -44,6 +44,8 @@ final class _NodeSchedulerImpl implements NodeScheduler {
 
   @override
   void scheduleNodes(Iterable<Schedulable> nodes) {
+    if (nodes.isEmpty) return;
+
     for (final node in nodes) {
       if (node.isScheduled) continue;
       node.isScheduled = true;
