@@ -3,8 +3,6 @@
 /// More dartdocs go here.
 library;
 
-export 'src/core/node/action.dart';
-
 export 'src/types.dart';
 
 export 'src/core/atom/store.dart';

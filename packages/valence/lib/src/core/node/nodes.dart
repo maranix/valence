@@ -1,6 +1,5 @@
 import 'package:meta/meta.dart';
 import 'package:valence/src/constants.dart';
-import 'package:valence/src/core/node/action.dart';
 import 'package:valence/src/core/scope.dart';
 import 'package:valence/src/types.dart';
 import 'package:valence/src/utils/equality.dart';
@@ -10,6 +9,11 @@ part 'mixin.dart';
 /// The universal contract for any node that can be subscribed to.
 abstract interface class Subscribable<T> {
   T call();
+}
+
+abstract interface class SourceEvent<T> {
+  @mustBeOverridden
+  T reduce(T state);
 }
 
 abstract class Node {
@@ -40,14 +44,18 @@ abstract class Node {
   }
 }
 
-abstract base class SourceNode<T, A extends Action<T>> extends Node
+abstract base class SourceNode<T, E extends SourceEvent<T>> extends Node
     with DownstreamChain<SelectorNode> {
-  SourceNode(this._state, {super.scope, super.label});
+  SourceNode(
+    this._state, {
+    super.scope,
+    super.label,
+  });
 
   T _state;
 
-  void dispatch(A action) {
-    final next = action.reduce(_state);
+  void dispatch(E event) {
+    final next = event.reduce(_state);
 
     if (_state == next) return;
 
@@ -72,13 +80,13 @@ abstract base class SelectorNode<T, S> extends Node
     _store.downstream.add(this);
   }
 
-  final SourceNode<S, Action<S>> _store;
+  final SourceNode _store;
 
   final T Function(S) _fn;
 
   final EqualityCallback<T> _equals;
 
-  SourceNode<S, Action<S>> get store => _store;
+  SourceNode get store => _store;
 
   @override
   T call() {

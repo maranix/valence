@@ -1,24 +1,23 @@
-import 'package:flutter/widgets.dart' hide Action;
+import 'package:flutter/widgets.dart';
 import 'package:valence/valence.dart';
 
-class StoreBuilder<T> extends StatefulWidget {
+class StoreBuilder<T, E extends StoreEvent<T>> extends StatefulWidget {
   const StoreBuilder({
     super.key,
     required this.store,
     required this.builder,
-    this.filter,
   });
 
-  final Store<T, Action> store;
+  final Store<T, E> store;
   final Widget Function(T) builder;
-  final R Function<R>(T)? filter;
 
   @override
-  State<StoreBuilder<T>> createState() => _StoreBuilderState<T>();
+  State<StoreBuilder<T, E>> createState() => _StoreBuilderState<T, E>();
 }
 
-class _StoreBuilderState<T> extends State<StoreBuilder<T>> {
-  late final Select<T> _select;
+class _StoreBuilderState<T, E extends StoreEvent<T>>
+    extends State<StoreBuilder<T, E>> {
+  late final StoreSlice<T> _slice;
   late T _value;
 
   void _onChangeListener(T value) {
@@ -31,21 +30,16 @@ class _StoreBuilderState<T> extends State<StoreBuilder<T>> {
   void initState() {
     super.initState();
 
-    if (widget.filter != null) {
-      _select = widget.store.select(widget.filter!);
-    } else {
-      _select = widget.store();
-    }
+    _slice = widget.store();
+    _slice.addListener(_onChangeListener);
 
-    _value = _select();
-
-    _select.addListener(_onChangeListener);
+    _value = _slice();
   }
 
   @override
   void dispose() {
-    _select.removeListener(_onChangeListener);
-    _select.dispose();
+    _slice.removeListener(_onChangeListener);
+    _slice.dispose();
 
     super.dispose();
   }

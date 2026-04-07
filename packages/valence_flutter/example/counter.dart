@@ -1,16 +1,16 @@
-import 'package:flutter/material.dart' hide Action;
+import 'package:flutter/material.dart';
 import 'package:valence_flutter/valence_flutter.dart';
 
-sealed class CounterAction extends Action<int> {}
+enum CounterStoreEvent implements StoreEvent<int> {
+  increment,
+  decrement
+  ;
 
-final class CounterIncrement extends CounterAction {
   @override
-  int reduce(int state) => state + 1;
-}
-
-final class CounterDecrement extends CounterAction {
-  @override
-  int reduce(int state) => state - 1;
+  int reduce(int count) => switch (this) {
+    .increment => count + 1,
+    .decrement => count + 1,
+  };
 }
 
 void main() {
@@ -38,7 +38,7 @@ class CounterPage extends StatefulWidget {
 }
 
 class _CounterPageState extends State<CounterPage> {
-  final counterStore = store<int, CounterAction>(0);
+  final counterStore = store<int, CounterStoreEvent>(0);
 
   @override
   void dispose() {
@@ -69,12 +69,12 @@ class _CounterPageState extends State<CounterPage> {
         children: <Widget>[
           FloatingActionButton(
             child: const Icon(Icons.add),
-            onPressed: () => counterStore.dispatch(CounterIncrement()),
+            onPressed: () => counterStore.dispatch(.increment),
           ),
           const SizedBox(height: 4),
           FloatingActionButton(
             child: const Icon(Icons.remove),
-            onPressed: () => counterStore.dispatch(CounterDecrement()),
+            onPressed: () => counterStore.dispatch(.decrement),
           ),
         ],
       ),

@@ -1,30 +1,35 @@
 import 'package:valence/src/constants.dart';
-import 'package:valence/src/core/node/action.dart';
 import 'package:valence/src/core/node/nodes.dart';
 import 'package:valence/src/core/scope.dart';
 import 'package:valence/src/types.dart';
 
-Store<S, A> store<S, A extends Action<S>>(
-  S val, {
+Store<T, E> store<T, E extends StoreEvent<T>>(
+  T val, {
   ValenceScope? scope,
   String? label,
-}) => _StoreImpl(val, scope: scope ?? Valence.scope, label: label);
+}) => _StoreImpl(
+  val,
+  scope: scope ?? Valence.scope,
+  label: label,
+);
 
-abstract interface class Store<S, A extends Action<S>> {
-  Select<R> select<R>(
-    R Function(S) fn, {
+abstract interface class StoreEvent<T> implements SourceEvent<T> {}
+
+abstract interface class Store<T, E extends StoreEvent<T>> {
+  StoreSlice<R> slice<R>(
+    R Function(T) fn, {
     EqualityCallback<R>? equals,
     String? label,
   });
 
-  Select<S> call();
+  StoreSlice<T> call();
 
-  void dispatch(A action);
+  void dispatch(E event);
 
   void dispose();
 }
 
-abstract interface class Select<T> implements Subscribable<T> {
+abstract interface class StoreSlice<T> implements Subscribable<T> {
   void addListener(void Function(T) fn);
 
   void removeListener(void Function(T) fn);
@@ -32,22 +37,22 @@ abstract interface class Select<T> implements Subscribable<T> {
   void dispose();
 }
 
-final class _StoreImpl<S, A extends Action<S>> extends SourceNode<S, A>
-    implements Store<S, A> {
+final class _StoreImpl<T, E extends StoreEvent<T>> extends SourceNode<T, E>
+    implements Store<T, E> {
   _StoreImpl(super._state, {super.scope, super.label});
 
   @override
-  Select<S> call() => select((s) => s);
+  StoreSlice<T> call() => slice((s) => s);
 
   @override
-  Select<R> select<R>(
-    R Function(S) fn, {
+  StoreSlice<R> slice<R>(
+    R Function(T) fn, {
     EqualityCallback<R>? equals,
     String? label,
-  }) => _SelectorImpl(this, fn, equals: equals, label: label);
+  }) => _StoreSliceImpl(this, fn, equals: equals, label: label);
 }
 
-final class _SelectorImpl<S, T> extends SelectorNode<T, S>
-    implements Select<T> {
-  _SelectorImpl(super._store, super.fn, {super.equals, super.label});
+final class _StoreSliceImpl<R, T> extends SelectorNode<T, R>
+    implements StoreSlice<T> {
+  _StoreSliceImpl(super._store, super.fn, {super.equals, super.label});
 }

@@ -1,39 +1,38 @@
 import 'package:valence/valence.dart';
 
-final class CountIncrement extends Action<int> {
-  const CountIncrement();
+enum CounterStoreEvent implements StoreEvent<int> {
+  increment,
+  decrement
+  ;
 
   @override
-  int reduce(int state) => state + 1;
+  int reduce(int count) => switch (this) {
+    .increment => count + 1,
+    .decrement => count + 1,
+  };
 }
 
-final class CountDecrement extends Action<int> {
-  const CountDecrement();
-
-  @override
-  int reduce(int state) => state - 1;
-}
-
-final actions = [
-  const CountIncrement(),
-  const CountIncrement(),
-  const CountDecrement(),
-  const CountIncrement(),
-  const CountIncrement(),
-  const CountIncrement(),
+final List<CounterStoreEvent> actions = [
+  .increment,
+  .increment,
+  .decrement,
+  .increment,
+  .increment,
+  .increment,
 ];
 
 void main() async {
-  final countStore = store(0);
-  final countSelector = countStore.select((c) => c);
+  final countStore = store<int, CounterStoreEvent>(0);
+
+  final countSlice = countStore();
 
   final countSquared = derive((sub) {
-    final count = sub(countSelector);
+    final count = sub(countSlice);
     return count * 2;
   });
 
   watch((sub) {
-    final count = sub(countSelector);
+    final count = sub(countSlice);
     final squaredCount = sub(countSquared);
 
     print("Count: $count\tSquared:$squaredCount");
