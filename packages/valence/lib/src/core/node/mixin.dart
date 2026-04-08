@@ -32,7 +32,11 @@ mixin Listener<T> on Value<T> implements Subscribable<T> {
     final listeners = _listeners.toList();
 
     for (final listener in listeners) {
-      listener(_value);
+      try {
+        listener(_value);
+      } catch (e, s) {
+        Valence.reportError(e, s);
+      }
     }
   }
 }
