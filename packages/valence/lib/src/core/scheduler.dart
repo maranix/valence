@@ -103,11 +103,11 @@ final class _NodeSchedulerImpl implements NodeScheduler {
     int d = _lowestQueuedDepth;
 
     while (d < _buckets.length) {
-      if (++i > Valence.maxCircularDepedencyIteration) {
+      if (++i > Valence.maxCircularDependencyIteration) {
         _flushing = false;
         throw StateError(
           'Valence: Circular dependency detected or infinite update loop. '
-          'The scheduler exceeded ${Valence.maxCircularDepedencyIteration} iterations.',
+          'The scheduler exceeded ${Valence.maxCircularDependencyIteration} iterations.',
         );
       }
 
