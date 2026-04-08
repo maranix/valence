@@ -110,40 +110,42 @@ final class _NodeSchedulerImpl implements NodeScheduler {
     int i = 0;
     int d = _lowestQueuedDepth;
 
-    while (d < _buckets.length) {
-      if (++i > Valence.maxCircularDependencyIteration) {
-        _flushing = false;
-        throw StateError(
-          'Valence: Circular dependency detected or infinite update loop. '
-          'The scheduler exceeded ${Valence.maxCircularDependencyIteration} iterations.',
-        );
+    try {
+      while (d < _buckets.length) {
+        if (++i > Valence.maxCircularDependencyIteration) {
+          _flushing = false;
+          throw StateError(
+            'Valence: Circular dependency detected or infinite update loop. '
+            'The scheduler exceeded ${Valence.maxCircularDependencyIteration} iterations.',
+          );
+        }
+
+        final bucket = _buckets[d];
+
+        if (bucket.isEmpty) {
+          d++;
+          _lowestQueuedDepth = d;
+          continue;
+        }
+
+        final node = bucket.removeLast();
+        node.isScheduled = false;
+
+        node.refresh();
+
+        if (_lowestQueuedDepth < d) {
+          d = _lowestQueuedDepth;
+        }
       }
 
-      final bucket = _buckets[d];
-
-      if (bucket.isEmpty) {
-        d++;
-        _lowestQueuedDepth = d;
-        continue;
+      for (final node in _postFlushListeners) {
+        node.notifyListeners();
       }
+    } finally {
+      _postFlushListeners.clear();
 
-      final node = bucket.removeLast();
-      node.isScheduled = false;
-
-      node.refresh();
-
-      if (_lowestQueuedDepth < d) {
-        d = _lowestQueuedDepth;
-      }
+      _lowestQueuedDepth = _buckets.length;
+      _flushing = false;
     }
-
-    for (final node in _postFlushListeners) {
-      node.notifyListeners();
-    }
-
-    _postFlushListeners.clear();
-
-    _lowestQueuedDepth = _buckets.length;
-    _flushing = false;
   }
 }
