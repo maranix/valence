@@ -22,11 +22,10 @@ mixin Listener<T> on Value<T> implements Subscribable<T> {
 
   void removeListener(void Function(T) fn) => _listeners.remove(fn);
 
-  void _notifyListeners() {
+  void notifyListeners() {
     if (_listeners.isEmpty) return;
-    for (int i = 0; i < _listeners.length; i++) {
-      _listeners[i](_value);
-    }
+
+    _scope.scheduler.addPostFlushListener(this);
   }
 }
 

@@ -11,6 +11,8 @@ abstract interface class NodeScheduler {
   void scheduleNodes(Iterable<Schedulable> nodes);
 
   void batch(void Function() fn);
+
+  void addPostFlushListener(Listener node);
 }
 
 final class _NodeSchedulerImpl implements NodeScheduler {
@@ -24,6 +26,7 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   bool _flushScheduled = false;
 
   final List<List<Schedulable>> _buckets = [];
+  final Set<Listener> _postFlushListeners = .new();
 
   @override
   void scheduleNode(Schedulable node) {
@@ -80,6 +83,11 @@ final class _NodeSchedulerImpl implements NodeScheduler {
     }
   }
 
+  @override
+  void addPostFlushListener(Listener node) {
+    _postFlushListeners.add(node);
+  }
+
   void _ensureBucketCapacity(int depth) {
     while (_buckets.length <= depth) {
       _buckets.add([]);
@@ -128,6 +136,12 @@ final class _NodeSchedulerImpl implements NodeScheduler {
         d = _lowestQueuedDepth;
       }
     }
+
+    for (final node in _postFlushListeners) {
+      node.notifyListeners();
+    }
+
+    _postFlushListeners.clear();
 
     _lowestQueuedDepth = _buckets.length;
     _flushing = false;
