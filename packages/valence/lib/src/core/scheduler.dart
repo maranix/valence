@@ -21,6 +21,7 @@ final class _NodeSchedulerImpl implements NodeScheduler {
 
   bool _flushing = false;
   bool get _batching => _batchDepth > 0;
+  bool _flushScheduled = false;
 
   final List<List<Schedulable>> _buckets = [];
 
@@ -86,13 +87,16 @@ final class _NodeSchedulerImpl implements NodeScheduler {
   }
 
   void _tryFlush() {
-    if (_flushing || _batching) return;
+    if (_flushing || _batching || _flushScheduled) return;
+
+    _flushScheduled = true;
 
     scheduleMicrotask(_flush);
   }
 
   void _flush() {
     if (_flushing) return;
+    _flushScheduled = false;
     _flushing = true;
 
     int i = 0;
