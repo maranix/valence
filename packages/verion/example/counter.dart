@@ -1,6 +1,6 @@
-import 'package:valence/valence.dart';
+import 'package:verion/verion.dart';
 
-enum CounterStoreEvent implements StoreEvent<int> {
+enum CounterStoreEvent implements SourceEvent<int> {
   increment,
   decrement
   ;
@@ -22,17 +22,15 @@ final List<CounterStoreEvent> actions = [
 ];
 
 void main() async {
-  final countStore = store<int, CounterStoreEvent>(0);
-
-  final countSlice = countStore();
+  final countStore = source<int, CounterStoreEvent>(0);
 
   final countSquared = derive((sub) {
-    final count = sub(countSlice);
+    final count = sub(countStore);
     return count * 2;
   });
 
-  watch((sub) {
-    final count = sub(countSlice);
+  observe((sub) {
+    final count = sub(countStore);
     final squaredCount = sub(countSquared);
 
     print("Count: $count\tSquared:$squaredCount");
