@@ -25,37 +25,21 @@ final class _SchedulerImpl implements Scheduler {
   bool _flushScheduled = false;
 
   final List<List<VerionBase>> _buckets = [];
-  final Set<VerionBase> _queued = .new();
   final Set<ListenableVerion> _listeners = .new();
+
+  int _queuedNodes = 0;
 
   @override
   void scheduleNode(VerionBase node) {
-    if (node.disposed || _queued.contains(node)) return;
+    _queueNode(node);
 
-    final depth = node.depth;
-
-    _ensureBucketCapacity(depth);
-
-    _buckets[depth].add(node);
-    _queued.add(node);
-
-    _updateLowestDepth(depth);
     _tryFlush();
   }
 
   @override
   void scheduleNodes(Iterable<VerionBase> nodes) {
     for (final node in nodes) {
-      if (node.disposed || _queued.contains(node)) continue;
-
-      final depth = node.depth;
-
-      _ensureBucketCapacity(depth);
-
-      _buckets[depth].add(node);
-      _queued.add(node);
-
-      _updateLowestDepth(depth);
+      _queueNode(node);
     }
 
     _tryFlush();
@@ -94,7 +78,7 @@ final class _SchedulerImpl implements Scheduler {
     int d = _lowestDepth;
 
     try {
-      while (d < _buckets.length) {
+      while (_queuedNodes > 0 && d < _buckets.length) {
         final bucket = _buckets[d];
 
         // If this bucket is empty move to the next one
@@ -105,15 +89,16 @@ final class _SchedulerImpl implements Scheduler {
         }
 
         final node = bucket.removeLast();
+        _queuedNodes -= 1;
+
         if (i > 100_000) {
           throw VerionCircularDependencyDetected(node);
         }
 
-        _queued.remove(node);
-
         if (node.disposed) continue;
 
         node.refresh();
+        node.dirty = false;
 
         // If a new node was queued at a lower at a depth during flush
         // rewind back and start flushing from [_lowestDepth] to maintain consistency
@@ -126,6 +111,7 @@ final class _SchedulerImpl implements Scheduler {
     } finally {
       _flushing = false;
       _lowestDepth = 0;
+      _queuedNodes = 0;
 
       for (final listener in _listeners) {
         listener.notifyListeners();
@@ -143,10 +129,10 @@ final class _SchedulerImpl implements Scheduler {
     _flushScheduled = false;
 
     _listeners.clear();
-    _queued.clear();
     _buckets.clear();
   }
 
+  @pragma("prefer-inline")
   void _tryFlush() {
     if (_flushing || _batching || _flushScheduled) return;
 
@@ -155,15 +141,31 @@ final class _SchedulerImpl implements Scheduler {
     scheduleMicrotask(flush);
   }
 
+  @pragma("prefer-inline")
   void _ensureBucketCapacity(int depth) {
     while (depth >= _buckets.length) {
       _buckets.add([]);
     }
   }
 
+  @pragma("prefer-inline")
   void _updateLowestDepth(int depth) {
-    if (_queued.isEmpty || depth < _lowestDepth) {
+    if (_queuedNodes == 0 || depth < _lowestDepth) {
       _lowestDepth = depth;
     }
+  }
+
+  @pragma("prefer-inline")
+  void _queueNode(VerionBase node) {
+    if (node.disposed || node.dirty) return;
+
+    final depth = node.depth;
+
+    _ensureBucketCapacity(depth);
+    _updateLowestDepth(depth);
+
+    _buckets[depth].add(node);
+    node.dirty = true;
+    _queuedNodes += 1;
   }
 }

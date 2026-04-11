@@ -40,6 +40,8 @@ abstract class VerionBase {
   bool _disposed = false;
   bool get disposed => _disposed;
 
+  bool dirty = false;
+
   @internal
   @protected
   void throwOnDisposed([String? action]) {
