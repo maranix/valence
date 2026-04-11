@@ -22,7 +22,7 @@ final class ObserveBase extends VerionBase
   // Dynamic Dependency
   //
   // Used for tracking newly subscribed parents when this is refreshed
-  final List<VerionBase> _subscriptions = [];
+  List<VerionBase> _subscriptions = [];
 
   @override
   void refresh() {
@@ -31,7 +31,7 @@ final class ObserveBase extends VerionBase
     _fn(_subscribe);
 
     diffSubs(_subscriptions);
-    _subscriptions.clear();
+    _subscriptions = [];
   }
 
   S _subscribe<S>(ReadableVerion<S> node) {

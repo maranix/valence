@@ -128,49 +128,85 @@ abstract class VerionBase {
   @internal
   @protected
   void diffSubs(List<VerionBase> subs) {
-    final oldSubs = _parents ?? [];
+    final oldSubs = _parents;
 
-    bool subsChanged = oldSubs.length != subs.length;
+    // Fast Path 1: First time initialization
+    if (oldSubs == null || oldSubs.isEmpty) {
+      for (var i = 0; i < subs.length; i++) {
+        final parent = subs[i];
+        parent.addChild(this);
+        onParentAdded(parent);
+      }
 
-    // Fast path
-    if (!subsChanged) {
-      // If the length of previous and current subscriptions is equals
-      // check whether any of the subscriptions are different
-      for (var i = oldSubs.length - 1; i >= 0; i--) {
+      _parents = subs;
+      return;
+    }
+
+    final oldLen = oldSubs.length;
+    final newLen = subs.length;
+
+    // Fast Path 2: Strict identity match
+    if (oldLen == newLen) {
+      bool isIdentical = true;
+
+      for (var i = 0; i < oldLen; i++) {
         // Order will relatively stay the same,
         //
         // I don't see any cases where subscriptions will only change their order
         if (oldSubs[i] != subs[i]) {
-          subsChanged = true;
+          isIdentical = false;
           break;
+        }
+      }
+
+      if (isIdentical) return;
+    }
+
+    // For standard UI graphs (< 30 dependencies), nested loops are faster
+    // because they avoid the overhead of allocating HashSets.
+    if (oldLen < 30 && newLen < 30) {
+      // Old subscriptions
+      for (var i = 0; i < oldLen; i++) {
+        final node = oldSubs[i];
+
+        if (!subs.contains(node)) {
+          node.removeChild(this);
+        }
+      }
+
+      // New subscriptions
+      for (var i = 0; i < newLen; i++) {
+        final node = subs[i];
+
+        if (!oldSubs.contains(node)) {
+          node.addChild(this);
+          onParentAdded(node);
+        }
+      }
+    } else {
+      final oldSet = oldSubs.toSet();
+      final newSet = subs.toSet();
+
+      // removed subscriptions
+      for (var i = 0; i < oldLen; i++) {
+        final node = oldSubs[i];
+        if (!newSet.contains(node)) {
+          node.removeChild(this);
+        }
+      }
+
+      // new subscriptions
+      for (var i = 0; i < newLen; i++) {
+        final node = subs[i];
+
+        if (!oldSet.contains(node)) {
+          node.addChild(this);
+          onParentAdded(node);
         }
       }
     }
 
-    // If subscriptions still did not change, return
-    // This node is currently stable
-    if (!subsChanged) {
-      return;
-    }
-
-    // Slow path: recompute subscriptions array
-    final oldSet = oldSubs.toSet();
-    final newSet = subs.toSet();
-
-    // removed subscriptions
-    for (final node in oldSet.difference(newSet)) {
-      node.removeChild(this);
-    }
-
-    // new subscriptions
-    for (final node in newSet.difference(oldSet)) {
-      node.addChild(this);
-
-      onParentAdded(node);
-    }
-
-    // Save a copy of this, since [subs] array is cleared
-    _parents = subs.toList();
+    _parents = subs;
   }
 
   @internal

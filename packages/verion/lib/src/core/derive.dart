@@ -32,7 +32,7 @@ final class DeriveBase<T> extends ReadableVerion<T>
 
   late T _value;
 
-  final List<VerionBase> _subscriptions = [];
+  List<VerionBase> _subscriptions = [];
 
   @override
   T get value {
@@ -43,7 +43,7 @@ final class DeriveBase<T> extends ReadableVerion<T>
       _initialized = true;
 
       diffSubs(_subscriptions);
-      _subscriptions.clear();
+      _subscriptions = [];
     }
 
     return _value;
@@ -55,14 +55,14 @@ final class DeriveBase<T> extends ReadableVerion<T>
 
     final next = _fn(_subscribe);
 
+    diffSubs(_subscriptions);
+    _subscriptions = [];
+
     if (_equals(next, value)) return;
 
     VerionObserver.instance?.onDeriveUpdated(this, _value, next);
 
     _value = next;
-
-    diffSubs(_subscriptions);
-    _subscriptions.clear();
 
     // Schedule childrens of this node
     if (hasChildren) {

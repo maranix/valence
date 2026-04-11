@@ -38,6 +38,11 @@ final class SourceBase<T, E extends SourceEvent<T>> extends ReadableVerion<T>
 
   T _value;
 
+  final EqualityCallback<T> _equals;
+
+  @override
+  int get depth => 0;
+
   @override
   T get value {
     throwOnDisposed("read");
@@ -49,8 +54,6 @@ final class SourceBase<T, E extends SourceEvent<T>> extends ReadableVerion<T>
   void refresh() {
     throw VerionUnsupportedOperationError(this, "refresh");
   }
-
-  final EqualityCallback<T> _equals;
 
   @override
   void dispatch(E event) {
