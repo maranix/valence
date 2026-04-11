@@ -8,3 +8,12 @@ export 'src/core/batch.dart' show batch;
 
 export 'src/types.dart';
 export 'src/observer.dart';
+
+export 'src/core/base.dart' show ReadableVerion;
+
+export 'src/core/core.dart'
+    show
+        VerionError,
+        VerionDisposedNodeError,
+        VerionCircularDependencyDetected,
+        VerionUnsupportedOperationError;
