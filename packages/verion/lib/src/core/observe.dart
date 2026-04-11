@@ -2,6 +2,8 @@ import 'package:verion/src/core/base.dart';
 import 'package:verion/src/types.dart';
 
 abstract interface class Observe {
+  bool get disposed;
+
   void dispose();
 }
 
