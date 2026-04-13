@@ -5,12 +5,22 @@ import 'utils.dart';
 
 void main() {
   group('Propagation Correctness', () {
-    test('source -> derive -> trigger propagates value', () async {
-      final (src, setSrc) = createSource<int>(1);
-      final derived = derive((sub) => sub(src) * 2);
+    late VerionScope scope;
+
+    setUp(() {
+      scope = VerionScope(label: "Propagation Correctness Test");
+    });
+
+    tearDown(() {
+      scope.dispose();
+    });
+
+    test('source -> scope.derive -> scope.trigger propagates value', () async {
+      final (src, setSrc) = createSource<int>(scope, 1);
+      final derived = scope.derive((sub) => sub(src) * 2);
 
       int? observeValue;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         observeValue = sub(derived);
       });
       await pump();
@@ -26,18 +36,18 @@ void main() {
     });
 
     test(
-      'derive equality-gates: does not propagate when output unchanged',
+      'scope.derive equality-gates: does not propagate when output unchanged',
       () async {
-        final (src, setSrc) = createSource<int>(1);
+        final (src, setSrc) = createSource<int>(scope, 1);
 
         int deriveEvals = 0;
-        final isEven = derive((sub) {
+        final isEven = scope.derive((sub) {
           deriveEvals++;
           return sub(src) % 2 == 0;
         });
 
         int observeEvals = 0;
-        final sink = trigger((sub) {
+        final sink = scope.trigger((sub) {
           observeEvals++;
           sub(isEven);
         });
@@ -70,11 +80,11 @@ void main() {
       },
     );
 
-    test('derive is lazy: not computed until first read', () {
-      final (src, _) = createSource<int>(1);
+    test('scope.derive is lazy: not computed until first read', () {
+      final (src, _) = createSource<int>(scope, 1);
 
       int evalCount = 0;
-      final lazyDerive = derive((sub) {
+      final lazyDerive = scope.derive((sub) {
         evalCount++;
         return sub(src);
       });
@@ -84,11 +94,11 @@ void main() {
       expect(evalCount, 1);
     });
 
-    test('unread derive skips refresh entirely', () async {
-      final (src, setSrc) = createSource<int>(1);
+    test('unread scope.derive skips refresh entirely', () async {
+      final (src, setSrc) = createSource<int>(scope, 1);
 
       int evalCount = 0;
-      final unreadDerive = derive((sub) {
+      final unreadDerive = scope.derive((sub) {
         evalCount++;
         return sub(src);
       });
@@ -105,10 +115,10 @@ void main() {
     });
 
     test('source equality-gates: dispatch with same value is no-op', () async {
-      final (src, setSrc) = createSource<int>(1);
+      final (src, setSrc) = createSource<int>(scope, 1);
 
       int evalCount = 0;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         evalCount++;
         sub(src);
       });
@@ -130,8 +140,8 @@ void main() {
     });
 
     test('listener fires post-flush with correct value', () async {
-      final (src, setSrc) = createSource<int>(1);
-      final derived = derive((sub) => sub(src) * 2);
+      final (src, setSrc) = createSource<int>(scope, 1);
+      final derived = scope.derive((sub) => sub(src) * 2);
 
       // Bind the derived to the source by reading it once
       // otherwise it has no children in the graph and skip schedules

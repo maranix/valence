@@ -5,6 +5,11 @@ import 'package:verion/src/observer.dart';
 import 'package:verion/src/types.dart';
 import 'package:verion/src/utils/equality.dart';
 
+mixin SourceEvent<T> {
+  @mustBeOverridden
+  T reduce(T value);
+}
+
 abstract interface class Source<T, E extends SourceEvent<T>>
     implements ReadableVerion<T> {
   void dispatch(E event);
@@ -13,22 +18,15 @@ abstract interface class Source<T, E extends SourceEvent<T>>
   void removeListener(ValueCallback<T> fn);
 }
 
-Source<T, E> source<T, E extends SourceEvent<T>>(
-  T value, {
-  EqualityCallback<T>? notifyWhen,
-  String? label,
-}) => SourceBase(value, notifyWhen: notifyWhen, label: label);
-
-mixin SourceEvent<T> {
-  @mustBeOverridden
-  T reduce(T value);
-}
-
 final class SourceBase<T, E extends SourceEvent<T>> extends ReadableVerion<T>
     with ListenableVerion<T>, Children
     implements Source<T, E> {
-  SourceBase(this._value, {EqualityCallback<T>? notifyWhen, super.label})
-    : _equals = notifyWhen ?? defaultEquals {
+  SourceBase(
+    this._value, {
+    EqualityCallback<T>? notifyWhen,
+    required super.scope,
+    super.label,
+  }) : _equals = notifyWhen ?? defaultEquals {
     /// Register this in the graph
 
     // Notify observer

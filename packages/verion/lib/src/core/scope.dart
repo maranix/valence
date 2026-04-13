@@ -3,16 +3,14 @@ import 'package:verion/src/core/scheduler.dart';
 import 'package:verion/src/observer.dart';
 
 abstract interface class VerionScope {
+  factory VerionScope({String? label}) = _ScopeImpl;
+
   String get label;
 
   void dispose();
 }
 
-VerionScope createScope({String? label}) => _ScopeImpl(label: label);
-
 abstract interface class Scope implements VerionScope {
-  factory Scope({String? label, Scheduler? scheduler}) = _ScopeImpl;
-
   Scheduler get scheduler;
 
   void registerNode(VerionBase node);

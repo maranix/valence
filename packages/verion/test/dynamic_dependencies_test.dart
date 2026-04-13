@@ -5,16 +5,26 @@ import 'utils.dart';
 
 void main() {
   group('Dynamic Dependencies', () {
-    test('derive tracks new dependency when fn changes branch', () async {
-      final (flag, setFlag) = createSource<bool>(true);
-      final (a, setA) = createSource<int>(1);
-      final (b, setB) = createSource<int>(2);
+    late VerionScope scope;
 
-      final result = derive((sub) => sub(flag) ? sub(a) : sub(b));
+    setUp(() {
+      scope = VerionScope(label: "Dynamic Dependencies Test");
+    });
+
+    tearDown(() {
+      scope.dispose();
+    });
+
+    test('derive tracks new dependency when fn changes branch', () async {
+      final (flag, setFlag) = createSource<bool>(scope, true);
+      final (a, setA) = createSource<int>(scope, 1);
+      final (b, setB) = createSource<int>(scope, 2);
+
+      final result = scope.derive((sub) => sub(flag) ? sub(a) : sub(b));
 
       int? observeValue;
       int observeEvals = 0;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         observeValue = sub(result);
         observeEvals++;
       });
@@ -60,13 +70,13 @@ void main() {
     });
 
     test('derive drops old dependency after branch change', () async {
-      final (flag, setFlag) = createSource<bool>(true);
-      final (a, setA) = createSource<int>(1);
+      final (flag, setFlag) = createSource<bool>(scope, true);
+      final (a, setA) = createSource<int>(scope, 1);
 
-      final result = derive((sub) => sub(flag) ? sub(a) : 0);
+      final result = scope.derive((sub) => sub(flag) ? sub(a) : 0);
 
       int observeEvals = 0;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         sub(result);
         observeEvals++;
       });

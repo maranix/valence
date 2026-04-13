@@ -5,8 +5,18 @@ import 'utils.dart';
 
 void main() {
   group('Disposal Contracts', () {
+    late VerionScope scope;
+
+    setUp(() {
+      scope = VerionScope(label: "Disposal Test");
+    });
+
+    tearDown(() {
+      scope.dispose();
+    });
+
     test('disposed source throws on dispatch', () {
-      final (src, setSrc) = createSource<int>(1);
+      final (src, setSrc) = createSource<int>(scope, 1);
 
       src.dispose();
 
@@ -17,8 +27,8 @@ void main() {
     });
 
     test('disposed derive throws on read', () {
-      final (src, _) = createSource<int>(1);
-      final derived = derive((sub) => sub(src));
+      final (src, _) = createSource<int>(scope, 1);
+      final derived = scope.derive((sub) => sub(src));
 
       derived.dispose();
 
@@ -29,7 +39,7 @@ void main() {
     });
 
     test('double dispose throws VerionDisposedNodeError', () {
-      final (src, _) = createSource<int>(1);
+      final (src, _) = createSource<int>(scope, 1);
 
       src.dispose();
 
@@ -41,12 +51,12 @@ void main() {
 
     test('trigger cleanup runs on derive disposed', () {
       // Create a scope to ensure we don't leak anything
-      final scope = createScope();
+      final scope = VerionScope();
 
-      final (src, setSrc) = createSource<int>(1, label: 'src');
-      final derived = derive((sub) => sub(src) * 2, label: 'derive');
+      final (src, setSrc) = createSource<int>(scope, 1, label: 'src');
+      final derived = scope.derive((sub) => sub(src) * 2, label: 'derive');
 
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         sub(derived);
       }, label: 'sink');
 
@@ -61,7 +71,7 @@ void main() {
     });
 
     test('adding listener to disposed source throws', () {
-      final (src, _) = createSource<int>(1);
+      final (src, _) = createSource<int>(scope, 1);
       src.dispose();
       expect(
         () => src.addListener((_) {}),

@@ -1,13 +1,12 @@
 import 'package:meta/meta.dart';
-import 'package:verion/src/constants.dart';
 import 'package:verion/src/core/core.dart';
 import 'package:verion/src/core/scope.dart';
 import 'package:verion/src/types.dart';
 
 abstract class VerionBase {
-  VerionBase({Scope? scope, String? label})
+  VerionBase({required Scope scope, String? label})
     : _label = label,
-      _scope = scope ?? globalScope {
+      _scope = scope {
     _scope.registerNode(this);
   }
 
@@ -62,7 +61,7 @@ abstract class VerionBase {
 }
 
 abstract class ReadableVerion<T> extends VerionBase {
-  ReadableVerion({super.scope, super.label});
+  ReadableVerion({required super.scope, super.label});
 
   T get value;
 }

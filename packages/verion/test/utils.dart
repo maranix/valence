@@ -12,8 +12,12 @@ class SetValue<T> with SourceEvent<T> {
 }
 
 /// Helper method to create a source and a quick set method.
-(Source<T, SetValue<T>>, void Function(T)) createSource<T>(T initialValue, {String? label}) {
-  final s = source<T, SetValue<T>>(initialValue, label: label);
+(Source<T, SetValue<T>>, void Function(T)) createSource<T>(
+  VerionScope scope,
+  T initialValue, {
+  String? label,
+}) {
+  final s = scope.source<T, SetValue<T>>(initialValue, label: label);
   return (s, (T val) => s.dispatch(SetValue(val)));
 }
 

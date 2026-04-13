@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:verion_flutter/src/provider.dart';
 import 'package:verion_flutter/verion_flutter.dart';
 
 enum CounterStoreEvent implements SourceEvent<int> {
@@ -25,29 +26,23 @@ class CounterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: CounterPage(),
+      home: VerionScopeProvider(
+        scope: VerionScope(),
+        child: const CounterPage(),
+      ),
     );
   }
 }
 
-class CounterPage extends StatefulWidget {
+class CounterPage extends StatelessWidget {
   const CounterPage({super.key});
 
   @override
-  State<CounterPage> createState() => _CounterPageState();
-}
-
-class _CounterPageState extends State<CounterPage> {
-  final counterStore = source<int, CounterStoreEvent>(0);
-
-  @override
-  void dispose() {
-    counterStore.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final counterStore = VerionScopeProvider.of(
+      context,
+    ).source<int, CounterStoreEvent>(0);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(

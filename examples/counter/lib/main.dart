@@ -21,33 +21,35 @@ class CounterApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: CounterPage());
+    return MaterialApp(
+      home: VerionScopeProvider(
+        scope: VerionScope(),
+        child: VerionProvider(
+          create: (context) {
+            final scope = VerionScopeProvider.of(context);
+            return scope.source<int, CounterStoreEvent>(0);
+          },
+          child: CounterPage(),
+        ),
+      ),
+    );
   }
 }
 
-class CounterPage extends StatefulWidget {
+class CounterPage extends StatelessWidget {
   const CounterPage({super.key});
 
   @override
-  State<CounterPage> createState() => _CounterPageState();
-}
-
-class _CounterPageState extends State<CounterPage> {
-  final counterStore = source<int, CounterStoreEvent>(0);
-
-  @override
-  void dispose() {
-    counterStore.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final counterSource = VerionProvider.of<Source<int, CounterStoreEvent>>(
+      context,
+    );
+
     return Scaffold(
       appBar: AppBar(title: const Text("Counter")),
       body: Center(
         child: SourceBuilder(
-          source: counterStore,
+          source: counterSource,
           builder: (count) =>
               Text('$count', style: Theme.of(context).textTheme.displayLarge),
         ),
@@ -58,12 +60,12 @@ class _CounterPageState extends State<CounterPage> {
         children: <Widget>[
           FloatingActionButton(
             child: const Icon(Icons.add),
-            onPressed: () => counterStore.dispatch(.increment),
+            onPressed: () => counterSource.dispatch(.increment),
           ),
           const SizedBox(height: 4),
           FloatingActionButton(
             child: const Icon(Icons.remove),
-            onPressed: () => counterStore.dispatch(.decrement),
+            onPressed: () => counterSource.dispatch(.decrement),
           ),
         ],
       ),

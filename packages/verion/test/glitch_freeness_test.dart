@@ -5,16 +5,26 @@ import 'utils.dart';
 
 void main() {
   group('Glitch-Freeness (Topology Tests)', () {
-    test('diamond dependency - no glitch', () async {
-      final (a, setA) = createSource<int>(1, label: 'a');
+    late VerionScope scope;
 
-      final b = derive<int>((sub) => sub(a) * 2, label: 'b');
-      final c = derive<int>((sub) => sub(a) * 3, label: 'c');
+    setUp(() {
+      scope = VerionScope(label: "Glitch-Freeness Test");
+    });
+
+    tearDown(() {
+      scope.dispose();
+    });
+
+    test('diamond dependency - no glitch', () async {
+      final (a, setA) = createSource<int>(scope, 1, label: 'a');
+
+      final b = scope.derive<int>((sub) => sub(a) * 2, label: 'b');
+      final c = scope.derive<int>((sub) => sub(a) * 3, label: 'c');
 
       final dValues = <int>[];
-      final d = derive<int>((sub) => sub(b) + sub(c), label: 'd');
+      final d = scope.derive<int>((sub) => sub(b) + sub(c), label: 'd');
 
-      final sub = trigger((sub) {
+      final sub = scope.trigger((sub) {
         dValues.add(sub(d));
       });
       await pump();
@@ -34,14 +44,14 @@ void main() {
     });
 
     test('fan-out topology - no glitch', () async {
-      final (src, setSrc) = createSource<int>(10);
+      final (src, setSrc) = createSource<int>(scope, 10);
 
-      final derived1 = derive<int>((sub) => sub(src) + 1);
-      final derived2 = derive<int>((sub) => sub(src) + 2);
-      final derived3 = derive<int>((sub) => sub(src) + 3);
+      final derived1 = scope.derive<int>((sub) => sub(src) + 1);
+      final derived2 = scope.derive<int>((sub) => sub(src) + 2);
+      final derived3 = scope.derive<int>((sub) => sub(src) + 3);
 
       final sinkValues = <int>[];
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         // Force type resolution by mapping and reducing
         final val1 = sub(derived1);
         final val2 = sub(derived2);
@@ -61,15 +71,15 @@ void main() {
     });
 
     test('long chain - propagates correctly without glitching', () async {
-      final (a, setA) = createSource<int>(1);
+      final (a, setA) = createSource<int>(scope, 1);
 
-      final b = derive<int>((sub) => sub(a) + 1);
-      final c = derive<int>((sub) => sub(b) + 1);
-      final d = derive<int>((sub) => sub(c) + 1);
-      final e = derive<int>((sub) => sub(d) + 1);
+      final b = scope.derive<int>((sub) => sub(a) + 1);
+      final c = scope.derive<int>((sub) => sub(b) + 1);
+      final d = scope.derive<int>((sub) => sub(c) + 1);
+      final e = scope.derive<int>((sub) => sub(d) + 1);
 
       final values = <int>[];
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         values.add(sub(e)); // e should be a + 4
       });
       await pump();
@@ -84,12 +94,12 @@ void main() {
       sink.dispose();
     });
 
-    test('multi-source merge - single flush using batch', () async {
-      final (a, setA) = createSource<int>(1);
-      final (b, setB) = createSource<int>(10);
-      final (c, setC) = createSource<int>(100);
+    test('multi-source merge - single flush using scope.batch', () async {
+      final (a, setA) = createSource<int>(scope, 1);
+      final (b, setB) = createSource<int>(scope, 10);
+      final (c, setC) = createSource<int>(scope, 100);
 
-      final sum = derive<int>((sub) {
+      final sum = scope.derive<int>((sub) {
         final va = sub(a);
         final vb = sub(b);
         final vc = sub(c);
@@ -97,14 +107,14 @@ void main() {
       });
 
       final values = <int>[];
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         values.add(sub(sum));
       });
       await pump();
 
       expect(values, [111]);
 
-      batch(() {
+      scope.batch(() {
         setA(2);
         setB(20);
         setC(200);

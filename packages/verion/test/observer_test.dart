@@ -70,10 +70,14 @@ base class MockObserver extends VerionObserver {
 void main() {
   group('Observer Semantics', () {
     late MockObserver observer;
+    late VerionScope scope;
 
     setUp(() {
       observer = MockObserver();
       VerionObserver.instance = observer;
+
+      scope = VerionScope(label: "Observer Test");
+      scope.dispose();
     });
 
     tearDown(() {
@@ -81,11 +85,9 @@ void main() {
     });
 
     test('observer receives correct hook events', () async {
-      final scope = createScope();
+      final (src, setSrc) = createSource<int>(scope, 1, label: 'src1');
 
-      final (src, setSrc) = createSource<int>(1, label: 'src1');
-
-      final derived = derive((sub) => sub(src) * 2, label: 'der1');
+      final derived = scope.derive((sub) => sub(src) * 2, label: 'der1');
 
       // Reading will subscribe and update
       derived.value;
@@ -118,9 +120,8 @@ void main() {
 
       // We perform all standard operations that would normally fire events.
       // They should just execute successfully without crashing.
-      final scope = createScope();
-      final (src, setSrc) = createSource<int>(1);
-      final derived = derive((sub) => sub(src) * 2);
+      final (src, setSrc) = createSource<int>(scope, 1);
+      final derived = scope.derive((sub) => sub(src) * 2);
 
       derived.value;
       setSrc(2);

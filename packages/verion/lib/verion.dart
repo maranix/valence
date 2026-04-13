@@ -1,10 +1,11 @@
 library;
 
-export 'src/core/source.dart' show Source, source, SourceEvent;
-export 'src/core/derive.dart' show Derive, derive;
-export 'src/core/trigger.dart' show Trigger, trigger;
-export 'src/core/scope.dart' show VerionScope, createScope;
-export 'src/core/batch.dart' show batch;
+export 'src/core/source.dart' show Source, SourceEvent;
+export 'src/core/derive.dart' show Derive;
+export 'src/core/trigger.dart' show Trigger;
+export 'src/core/scope.dart' show VerionScope;
+
+export 'src/extension/scope_extension.dart';
 
 export 'src/types.dart';
 export 'src/observer.dart';

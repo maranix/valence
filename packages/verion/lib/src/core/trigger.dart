@@ -7,11 +7,12 @@ abstract interface class Trigger {
   void dispose();
 }
 
-Trigger trigger(void Function(SubscribeCallback sub) fn, {String? label}) =>
-    TriggerBase(fn, label: label);
-
 final class TriggerBase extends VerionBase with Parents implements Trigger {
-  TriggerBase(this._fn, {super.label}) {
+  TriggerBase(
+    this._fn, {
+    required super.scope,
+    super.label,
+  }) {
     refresh();
   }
 

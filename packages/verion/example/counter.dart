@@ -22,14 +22,15 @@ final List<CounterStoreEvent> actions = [
 ];
 
 void main() async {
-  final countStore = source<int, CounterStoreEvent>(0);
+  final scope = VerionScope();
+  final countStore = scope.source<int, CounterStoreEvent>(0);
 
-  final countSquared = derive((sub) {
+  final countSquared = scope.derive((sub) {
     final count = sub(countStore);
     return count * 2;
   });
 
-  trigger((sub) {
+  scope.trigger((sub) {
     final count = sub(countStore);
     final squaredCount = sub(countSquared);
 
@@ -41,4 +42,6 @@ void main() async {
 
     await Future.delayed(.new(seconds: 1));
   }
+
+  scope.dispose();
 }

@@ -8,17 +8,15 @@ abstract interface class Derive<T> implements ReadableVerion<T> {
   void removeListener(ValueCallback<T> fn);
 }
 
-Derive<T> derive<T>(
-  T Function(SubscribeCallback sub) fn, {
-  EqualityCallback<T>? notifyWhen,
-  String? label,
-}) => DeriveBase(fn, notifyWhen: notifyWhen, label: label);
-
 final class DeriveBase<T> extends ReadableVerion<T>
     with Parents, Children, ListenableVerion<T>
     implements Derive<T> {
-  DeriveBase(this._fn, {EqualityCallback<T>? notifyWhen, super.label})
-    : _equals = notifyWhen ?? defaultEquals {
+  DeriveBase(
+    this._fn, {
+    EqualityCallback<T>? notifyWhen,
+    required super.scope,
+    super.label,
+  }) : _equals = notifyWhen ?? defaultEquals {
     // Notify observer
     VerionObserver.instance?.onDeriveCreated(this);
   }

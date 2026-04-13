@@ -5,14 +5,24 @@ import 'utils.dart';
 
 void main() {
   group('Batch Semantics', () {
-    test('batch: multiple dispatches, single flush', () async {
-      final (a, setA) = createSource<int>(1);
-      final (b, setB) = createSource<int>(2);
+    late VerionScope scope;
 
-      final sum = derive((sub) => sub(a) + sub(b));
+    setUp(() {
+      scope = VerionScope(label: "Batch Test");
+    });
+
+    tearDown(() {
+      scope.dispose();
+    });
+
+    test('batch: multiple dispatches, single flush', () async {
+      final (a, setA) = createSource<int>(scope, 1);
+      final (b, setB) = createSource<int>(scope, 2);
+
+      final sum = scope.derive((sub) => sub(a) + sub(b));
 
       int observeEvals = 0;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         sub(sum);
         observeEvals++;
       });
@@ -20,7 +30,7 @@ void main() {
 
       expect(observeEvals, 1);
 
-      batch(() {
+      scope.batch(() {
         setA(10);
         setB(20);
       });
@@ -33,14 +43,14 @@ void main() {
     });
 
     test('batch: nested batches only flush on outermost exit', () async {
-      final (a, setA) = createSource<int>(1);
-      final (b, setB) = createSource<int>(2);
-      final (c, setC) = createSource<int>(3);
+      final (a, setA) = createSource<int>(scope, 1);
+      final (b, setB) = createSource<int>(scope, 2);
+      final (c, setC) = createSource<int>(scope, 3);
 
-      final sum = derive((sub) => sub(a) + sub(b) + sub(c));
+      final sum = scope.derive((sub) => sub(a) + sub(b) + sub(c));
 
       int observeEvals = 0;
-      final sink = trigger((sub) {
+      final sink = scope.trigger((sub) {
         sub(sum);
         observeEvals++;
       });
@@ -48,15 +58,15 @@ void main() {
 
       expect(observeEvals, 1);
 
-      batch(() {
+      scope.batch(() {
         // Outer batch
         setA(10);
 
-        batch(() {
+        scope.batch(() {
           // Inner batch 1
           setB(20);
 
-          batch(() {
+          scope.batch(() {
             // Inner batch 2
             setC(30);
           });
