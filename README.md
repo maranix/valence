@@ -6,8 +6,7 @@ Future capabilities may include:
 
 * Flutter widgets integration
 * devtools graph inspector
-* action replay
-* time-travel debugging
+* event replay
 
 ---
 
