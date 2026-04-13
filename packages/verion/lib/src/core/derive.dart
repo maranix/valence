@@ -6,7 +6,6 @@ import 'package:verion/src/utils/equality.dart';
 abstract interface class Derive<T> implements ReadableVerion<T> {
   void addListener(ValueCallback<T> fn);
   void removeListener(ValueCallback<T> fn);
-  void notifyListeners();
 }
 
 Derive<T> derive<T>(

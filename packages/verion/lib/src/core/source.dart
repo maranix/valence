@@ -11,7 +11,6 @@ abstract interface class Source<T, E extends SourceEvent<T>>
 
   void addListener(ValueCallback<T> fn);
   void removeListener(ValueCallback<T> fn);
-  void notifyListeners();
 }
 
 Source<T, E> source<T, E extends SourceEvent<T>>(
