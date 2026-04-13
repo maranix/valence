@@ -46,7 +46,7 @@ void main() {
       final (src, setSrc) = createSource<int>(1, label: 'src');
       final derived = derive((sub) => sub(src) * 2, label: 'derive');
 
-      final sink = observe((sub) {
+      final sink = trigger((sub) {
         sub(derived);
       }, label: 'sink');
 

@@ -29,7 +29,7 @@ void main() async {
     return count * 2;
   });
 
-  observe((sub) {
+  trigger((sub) {
     final count = sub(countStore);
     final squaredCount = sub(countSquared);
 

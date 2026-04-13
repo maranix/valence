@@ -1,17 +1,17 @@
 import 'package:verion/src/core/base.dart';
 import 'package:verion/src/types.dart';
 
-abstract interface class Observe {
+abstract interface class Trigger {
   bool get disposed;
 
   void dispose();
 }
 
-Observe observe(void Function(SubscribeCallback sub) fn, {String? label}) =>
-    ObserveBase(fn, label: label);
+Trigger trigger(void Function(SubscribeCallback sub) fn, {String? label}) =>
+    TriggerBase(fn, label: label);
 
-final class ObserveBase extends VerionBase with Parents implements Observe {
-  ObserveBase(this._fn, {super.label}) {
+final class TriggerBase extends VerionBase with Parents implements Trigger {
+  TriggerBase(this._fn, {super.label}) {
     refresh();
   }
 
