@@ -14,24 +14,56 @@ class VerionScopeProvider extends StatelessWidget {
   final bool autoDispose;
 
   static VerionScope? maybeOf(BuildContext context, {String? label}) {
-    final injectedScope = _Provider.maybeOf<VerionScope>(context);
-    if (injectedScope == null || injectedScope.label != label) {
-      return null;
+    if (label == null) {
+      return _Provider.maybeOf<VerionScope>(context);
     }
 
-    return injectedScope;
+    return _traverseWidgetTree(context, label: label);
   }
 
   static VerionScope of(BuildContext context, {String? label}) {
     final injectedScope = VerionProvider.of<VerionScope>(context);
-    if (label == null || injectedScope.label == label) {
+    if (label == null) {
       return injectedScope;
+    }
+
+    if (injectedScope.label == label) {
+      return injectedScope;
+    }
+
+    final scope = _traverseWidgetTree(context, label: label);
+    if (scope != null) {
+      return scope;
     }
 
     throw StateError(
       'VerionScopeProvider with $label not found in the widget tree. '
       'Ensure you have VerionScope with $label as your parent in the widget tree.',
     );
+  }
+
+  /// Slow path
+  /// Traverse the Widget Tree upwards and look for [VerionScope] with [label]
+  static VerionScope? _traverseWidgetTree(
+    BuildContext context, {
+    String? label,
+  }) {
+    VerionScope? scope;
+
+    context.visitAncestorElements((e) {
+      if (e is _Provider<VerionScope>) {
+        final el = e as _Provider<VerionScope>;
+
+        if (el.value.label == label) {
+          scope = el.value;
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return scope;
   }
 
   @override
