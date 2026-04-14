@@ -50,6 +50,8 @@ final class _SchedulerImpl implements Scheduler {
     if (node.disposed || _listeners.contains(node)) return;
 
     _listeners.add(node);
+
+    _tryFlush();
   }
 
   @override
