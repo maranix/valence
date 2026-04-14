@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:verion_flutter/src/provider.dart';
 import 'package:verion_flutter/verion_flutter.dart';
 
 enum CounterStoreEvent implements SourceEvent<int> {

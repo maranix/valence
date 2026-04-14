@@ -12,6 +12,8 @@ enum CounterStoreEvent implements SourceEvent<int> {
   };
 }
 
+final class CounterScope extends VerionScope {}
+
 final List<CounterStoreEvent> actions = [
   .increment,
   .increment,
@@ -22,7 +24,7 @@ final List<CounterStoreEvent> actions = [
 ];
 
 void main() async {
-  final scope = VerionScope();
+  final scope = CounterScope();
   final countStore = scope.source<int, CounterStoreEvent>(0);
 
   final countSquared = scope.derive((sub) {

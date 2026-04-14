@@ -3,9 +3,8 @@ library;
 export 'src/core/source.dart' show Source, SourceEvent;
 export 'src/core/derive.dart' show Derive;
 export 'src/core/trigger.dart' show Trigger;
-export 'src/core/scope.dart' show VerionScope;
-
-export 'src/extension/scope_extension.dart';
+export 'src/core/scope.dart'
+    show VerionScope, SourceX, DeriveX, TriggerX, BatchX;
 
 export 'src/types.dart';
 export 'src/observer.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:verion_flutter/verion_flutter.dart';
 
-class VerionScopeProvider extends StatelessWidget {
+class VerionScopeProvider<T extends VerionScope> extends StatelessWidget {
   const VerionScopeProvider({
     super.key,
     required this.scope,
@@ -9,29 +9,33 @@ class VerionScopeProvider extends StatelessWidget {
     this.autoDispose = true,
   });
 
-  final VerionScope scope;
+  final T scope;
   final Widget child;
   final bool autoDispose;
 
-  static VerionScope? maybeOf(BuildContext context, {String? label}) {
+  static T? maybeOf<T extends VerionScope>(
+    BuildContext context, {
+    String? label,
+  }) {
     if (label == null) {
-      return _Provider.maybeOf<VerionScope>(context);
+      return _Provider.maybeOf<T>(context);
     }
 
     return _traverseWidgetTree(context, label: label);
   }
 
-  static VerionScope of(BuildContext context, {String? label}) {
-    final injectedScope = VerionProvider.of<VerionScope>(context);
+  static T of<T extends VerionScope>(
+    BuildContext context, {
+    String? label,
+  }) {
+    final injectedScope = VerionProvider.of<T>(context);
     if (label == null) {
       return injectedScope;
-    }
-
-    if (injectedScope.label == label) {
+    } else if (injectedScope.label == label) {
       return injectedScope;
     }
 
-    final scope = _traverseWidgetTree(context, label: label);
+    final scope = _traverseWidgetTree<T>(context, label: label);
     if (scope != null) {
       return scope;
     }
@@ -44,15 +48,15 @@ class VerionScopeProvider extends StatelessWidget {
 
   /// Slow path
   /// Traverse the Widget Tree upwards and look for [VerionScope] with [label]
-  static VerionScope? _traverseWidgetTree(
+  static T? _traverseWidgetTree<T extends VerionScope>(
     BuildContext context, {
     String? label,
   }) {
-    VerionScope? scope;
+    T? scope;
 
     context.visitAncestorElements((e) {
-      if (e is _Provider<VerionScope>) {
-        final el = e as _Provider<VerionScope>;
+      if (e is _Provider<T>) {
+        final el = e as _Provider<T>;
 
         if (el.value.label == label) {
           scope = el.value;
@@ -68,12 +72,12 @@ class VerionScopeProvider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void Function(VerionScope)? dispose = switch (autoDispose) {
+    void Function(T)? dispose = switch (autoDispose) {
       true => (s) => s.dispose(),
       false => null,
     };
 
-    return VerionProvider(
+    return VerionProvider<T>(
       create: (context) => scope,
       onDispose: dispose,
       child: child,

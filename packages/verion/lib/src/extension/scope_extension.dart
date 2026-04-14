@@ -1,8 +1,4 @@
-import 'package:verion/src/core/derive.dart';
-import 'package:verion/src/core/scope.dart';
-import 'package:verion/src/core/source.dart';
-import 'package:verion/src/core/trigger.dart';
-import 'package:verion/src/types.dart';
+part of '../core/scope.dart';
 
 extension SourceX on VerionScope {
   Source<T, E> source<T, E extends SourceEvent<T>>(
@@ -11,7 +7,7 @@ extension SourceX on VerionScope {
     String? label,
   }) => SourceBase(
     value,
-    scope: this as Scope,
+    scope: _scope,
     notifyWhen: notifyWhen,
     label: label,
   );
@@ -24,7 +20,7 @@ extension DeriveX on VerionScope {
     String? label,
   }) => DeriveBase(
     fn,
-    scope: this as Scope,
+    scope: _scope,
     notifyWhen: notifyWhen,
     label: label,
   );
@@ -32,9 +28,9 @@ extension DeriveX on VerionScope {
 
 extension TriggerX on VerionScope {
   Trigger trigger(void Function(SubscribeCallback sub) fn, {String? label}) =>
-      TriggerBase(fn, label: label, scope: this as Scope);
+      TriggerBase(fn, label: label, scope: _scope);
 }
 
 extension BatchX on VerionScope {
-  void batch(VoidCallback fn) => (this as Scope).scheduler.batch(fn);
+  void batch(VoidCallback fn) => _scope.scheduler.batch(fn);
 }

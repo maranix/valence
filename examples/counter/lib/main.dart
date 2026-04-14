@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:verion_flutter/verion_flutter.dart';
 
-enum CounterStoreEvent implements SourceEvent<int> {
+enum CounterSourceEvent implements SourceEvent<int> {
   increment,
   decrement;
 
@@ -12,7 +12,85 @@ enum CounterStoreEvent implements SourceEvent<int> {
   };
 }
 
+final class CounterScope extends VerionScope {
+  CounterScope();
+
+  late final count = source<int, CounterSourceEvent>(0);
+
+  @override
+  void dispose() {
+    count.dispose();
+    super.dispose();
+  }
+}
+
+final class Observer extends VerionObserver {
+  @override
+  void onScopeCreated(VerionScope scope) {
+    print('onScopeCreated');
+  }
+
+  @override
+  void onScopeDisposed(VerionScope scope) {
+    print('onScopeDisposed');
+  }
+
+  @override
+  void onSourceCreated(
+    covariant Source<dynamic, SourceEvent<dynamic>> source,
+    dynamic value,
+  ) {
+    print('onSourceCreated:${source.label}\t$value');
+  }
+
+  @override
+  void onSourceUpdated(
+    covariant Source<dynamic, SourceEvent<dynamic>> source,
+    SourceEvent event,
+    dynamic prevValue,
+    dynamic nextValue,
+  ) {
+    print(
+      'onSourceUpdated:${source.label}\tprev: $prevValue | next: $nextValue',
+    );
+  }
+
+  @override
+  void onSourceDiposed(covariant Source<dynamic, SourceEvent<dynamic>> source) {
+    print('onSourceDisposed:${source.label}');
+  }
+
+  @override
+  void onDeriveCreated(covariant Derive<dynamic> derive) {
+    print('onDeriveCreated:${derive.label}');
+  }
+
+  @override
+  void onDeriveSubscribed(
+    covariant Derive<dynamic> derive,
+    ReadableVerion node,
+  ) {
+    print('onDeriveSubscribed:${derive.label}');
+  }
+
+  @override
+  void onDeriveUpdated(
+    covariant Derive<dynamic> derive,
+    dynamic prevValue,
+    dynamic nextValue,
+  ) {
+    print('onDeriveUpdated:${derive.label}');
+  }
+
+  @override
+  void onDeriveDisposed(covariant Derive<dynamic> derive) {
+    print('onDeriveDisposed:${derive.label}');
+  }
+}
+
 void main() {
+  VerionObserver.instance = Observer();
+
   runApp(const CounterApp());
 }
 
@@ -22,16 +100,7 @@ class CounterApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: VerionScopeProvider(
-        scope: VerionScope(),
-        child: VerionProvider(
-          create: (context) {
-            final scope = VerionScopeProvider.of(context);
-            return scope.source<int, CounterStoreEvent>(0);
-          },
-          child: CounterPage(),
-        ),
-      ),
+      home: VerionScopeProvider(scope: CounterScope(), child: CounterPage()),
     );
   }
 }
@@ -41,15 +110,13 @@ class CounterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final counterSource = VerionProvider.of<Source<int, CounterStoreEvent>>(
-      context,
-    );
+    final counterScope = VerionScopeProvider.of<CounterScope>(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Counter")),
       body: Center(
         child: SourceBuilder(
-          source: counterSource,
+          source: counterScope.count,
           builder: (count) =>
               Text('$count', style: Theme.of(context).textTheme.displayLarge),
         ),
@@ -60,12 +127,12 @@ class CounterPage extends StatelessWidget {
         children: <Widget>[
           FloatingActionButton(
             child: const Icon(Icons.add),
-            onPressed: () => counterSource.dispatch(.increment),
+            onPressed: () => counterScope.count.dispatch(.increment),
           ),
           const SizedBox(height: 4),
           FloatingActionButton(
             child: const Icon(Icons.remove),
-            onPressed: () => counterSource.dispatch(.decrement),
+            onPressed: () => counterScope.count.dispatch(.decrement),
           ),
         ],
       ),
