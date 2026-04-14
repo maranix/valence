@@ -70,6 +70,11 @@ final class _ScopeImpl implements Scope {
   @override
   void dispose() {
     _scheduler.dispose();
+
+    for (final node in _nodes) {
+      node.dispose();
+    }
+
     _nodes.clear();
   }
 }
