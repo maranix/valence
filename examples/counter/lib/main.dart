@@ -16,6 +16,9 @@ final class CounterScope extends VerionScope {
   CounterScope();
 
   late final count = source<int, CounterSourceEvent>(0);
+
+  static CounterScope of(BuildContext context) =>
+      VerionScopeProvider.of<CounterScope>(context);
 }
 
 final class Observer extends VerionObserver {
@@ -104,13 +107,13 @@ class CounterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final counterScope = VerionScopeProvider.of<CounterScope>(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text("Counter")),
       body: Center(
-        child: SourceBuilder(
-          source: counterScope.count,
+        child: DeriveBuilder<int, CounterScope>(
+          derive: (sub, scope) {
+            return sub(scope.count);
+          },
           builder: (count) =>
               Text('$count', style: Theme.of(context).textTheme.displayLarge),
         ),
@@ -121,12 +124,14 @@ class CounterPage extends StatelessWidget {
         children: <Widget>[
           FloatingActionButton(
             child: const Icon(Icons.add),
-            onPressed: () => counterScope.count.dispatch(.increment),
+            onPressed: () =>
+                CounterScope.of(context).count.dispatch(.increment),
           ),
           const SizedBox(height: 4),
           FloatingActionButton(
             child: const Icon(Icons.remove),
-            onPressed: () => counterScope.count.dispatch(.decrement),
+            onPressed: () =>
+                CounterScope.of(context).count.dispatch(.decrement),
           ),
         ],
       ),
