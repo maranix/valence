@@ -56,6 +56,8 @@ final class _ScopeImpl implements Scope {
 
   final List<VerionBase> _nodes = [];
 
+  bool _disposed = false;
+
   @override
   void registerNode(VerionBase node) => _nodes.add(node);
 
@@ -70,10 +72,20 @@ final class _ScopeImpl implements Scope {
 
   @override
   void dispose() {
+    if (_disposed) return;
+
+    _disposed = true;
+
     _scheduler.dispose();
 
-    for (final node in _nodes) {
-      node.dispose();
+    for (var i = 0; i < _nodes.length; i++) {
+      final node = _nodes[i];
+
+      // We only need to dispose Source nodes since they will correctly
+      // propagate the dispose signal to their childrens.
+      if (node is SourceBase) {
+        node.dispose();
+      }
     }
 
     _nodes.clear();
