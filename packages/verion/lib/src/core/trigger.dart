@@ -1,5 +1,5 @@
 import 'package:verion/src/core/base.dart';
-import 'package:verion/src/types.dart';
+import 'package:verion/src/core/subscribe_context.dart';
 
 abstract interface class Trigger {
   bool get disposed;
@@ -16,30 +16,25 @@ final class TriggerBase extends VerionBase with Parents implements Trigger {
     refresh();
   }
 
-  final void Function(SubscribeCallback sub) _fn;
+  final void Function(SubscribeContext sub) _fn;
 
-  // Dynamic Dependency
-  //
-  // Used for tracking newly subscribed parents when this is refreshed
-  List<VerionBase> _subscriptions = [];
+  final SubscribeContext _subscribeContext = .new();
 
   @override
   void refresh() {
     throwOnDisposed("refresh");
 
-    _fn(_subscribe);
+    _subscribeContext.executeTeardown();
 
-    diffSubs(_subscriptions);
-    _subscriptions = [];
+    _fn(_subscribeContext);
+
+    diffSubs(_subscribeContext.subscriptions);
+    _subscribeContext.clearSubscriptions();
   }
 
-  S _subscribe<S>(ReadableVerion<S> node) {
-    throwOnDisposed("subscribe");
-
-    if (!_subscriptions.contains(node)) {
-      _subscriptions.add(node);
-    }
-
-    return node.value;
+  @override
+  void dispose() {
+    _subscribeContext.dispose();
+    super.dispose();
   }
 }

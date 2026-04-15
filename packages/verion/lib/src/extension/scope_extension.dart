@@ -27,7 +27,7 @@ extension DeriveX on VerionScope {
 }
 
 extension TriggerX on VerionScope {
-  Trigger trigger(void Function(SubscribeCallback sub) fn, {String? label}) =>
+  Trigger trigger(void Function(SubscribeContext sub) fn, {String? label}) =>
       TriggerBase(fn, label: label, scope: _scope);
 }
 
