@@ -18,7 +18,9 @@ final class TriggerBase extends VerionBase with Parents implements Trigger {
 
   final void Function(SubscribeContext sub) _fn;
 
-  final SubscribeContext _subscribeContext = .new();
+  late final SubscribeContext _subscribeContext = .new((_) {
+    throwOnDisposed("subscribe");
+  });
 
   @override
   void refresh() {
