@@ -16,12 +16,6 @@ final class CounterScope extends VerionScope {
   CounterScope();
 
   late final count = source<int, CounterSourceEvent>(0);
-
-  @override
-  void dispose() {
-    count.dispose();
-    super.dispose();
-  }
 }
 
 final class Observer extends VerionObserver {
