@@ -6,11 +6,12 @@ abstract interface class SubscribeContext {
   factory SubscribeContext([void Function(ReadableVerion)? onSubscribe]) =
       _SubscribeContextImpl;
 
-  List<VerionBase> get subscriptions;
-
   T call<T>(ReadableVerion<T> node);
 
   void onDispose(VoidCallback teardown);
+
+  @internal
+  List<VerionBase> get subscriptions;
 
   @internal
   void executeTeardown();

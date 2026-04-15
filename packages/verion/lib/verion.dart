@@ -5,6 +5,7 @@ export 'src/core/derive.dart' show Derive;
 export 'src/core/trigger.dart' show Trigger;
 export 'src/core/scope.dart'
     show VerionScope, SourceX, DeriveX, TriggerX, BatchX;
+export 'src/core/subscribe_context.dart' show SubscribeContext;
 
 export 'src/types.dart';
 export 'src/observer.dart';
