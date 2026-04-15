@@ -15,7 +15,7 @@ extension SourceX on VerionScope {
 
 extension DeriveX on VerionScope {
   Derive<T> derive<T>(
-    T Function(SubscribeCallback sub) fn, {
+    T Function(SubscribeContext sub) fn, {
     EqualityCallback<T>? notifyWhen,
     String? label,
   }) => DeriveBase(

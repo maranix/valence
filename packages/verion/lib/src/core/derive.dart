@@ -1,4 +1,5 @@
 import 'package:verion/src/core/base.dart';
+import 'package:verion/src/core/subscribe_context.dart';
 import 'package:verion/src/observer.dart';
 import 'package:verion/src/types.dart';
 import 'package:verion/src/utils/equality.dart';
@@ -23,24 +24,27 @@ final class DeriveBase<T> extends ReadableVerion<T>
 
   final EqualityCallback<T> _equals;
 
-  final T Function(SubscribeCallback sub) _fn;
+  final T Function(SubscribeContext sub) _fn;
 
   bool _initialized = false;
 
   late T _value;
 
-  List<VerionBase> _subscriptions = [];
+  late final SubscribeContext _subscribeContext = .new((node) {
+    throwOnDisposed("subscribe");
+    VerionObserver.instance?.onDeriveSubscribed(this, node);
+  });
 
   @override
   T get value {
     throwOnDisposed("read");
 
     if (!_initialized) {
-      _value = _fn(_subscribe);
+      _value = _fn(_subscribeContext);
       _initialized = true;
 
-      diffSubs(_subscriptions);
-      _subscriptions = [];
+      diffSubs(_subscribeContext.subscriptions);
+      _subscribeContext.clearSubscriptions();
     }
 
     return _value;
@@ -50,10 +54,12 @@ final class DeriveBase<T> extends ReadableVerion<T>
   void refresh() {
     throwOnDisposed("refresh");
 
-    final next = _fn(_subscribe);
+    _subscribeContext.executeTeardown();
 
-    diffSubs(_subscriptions);
-    _subscriptions = [];
+    final next = _fn(_subscribeContext);
+
+    diffSubs(_subscribeContext.subscriptions);
+    _subscribeContext.clearSubscriptions();
 
     if (_equals(next, value)) return;
 
@@ -73,30 +79,8 @@ final class DeriveBase<T> extends ReadableVerion<T>
   @override
   void dispose() {
     VerionObserver.instance?.onDeriveDisposed(this);
+    _subscribeContext.dispose();
 
     super.dispose();
-  }
-
-  @override
-  void updateDepth(int parentDepth) {
-    super.updateDepth(parentDepth);
-
-    if (hasChildren) {
-      for (var i = 0; i < children.length; i++) {
-        children[i].updateDepth(depth);
-      }
-    }
-  }
-
-  S _subscribe<S>(ReadableVerion<S> node) {
-    throwOnDisposed("subscribe");
-
-    VerionObserver.instance?.onDeriveSubscribed(this, node);
-
-    if (!_subscriptions.contains(node)) {
-      _subscriptions.add(node);
-    }
-
-    return node.value;
   }
 }

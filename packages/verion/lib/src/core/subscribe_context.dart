@@ -3,7 +3,8 @@ import 'package:verion/src/core/base.dart';
 import 'package:verion/src/types.dart';
 
 abstract interface class SubscribeContext {
-  factory SubscribeContext() = _SubscribeContextImpl;
+  factory SubscribeContext([void Function(ReadableVerion)? onSubscribe]) =
+      _SubscribeContextImpl;
 
   List<VerionBase> get subscriptions;
 
@@ -22,6 +23,10 @@ abstract interface class SubscribeContext {
 }
 
 final class _SubscribeContextImpl implements SubscribeContext {
+  _SubscribeContextImpl([this._onSubscribe]);
+
+  final void Function(ReadableVerion)? _onSubscribe;
+
   List<VerionBase> _subscriptions = [];
 
   @override
@@ -34,6 +39,8 @@ final class _SubscribeContextImpl implements SubscribeContext {
     if (!_subscriptions.contains(node)) {
       _subscriptions.add(node);
     }
+
+    _onSubscribe?.call(node);
 
     return node.value;
   }
