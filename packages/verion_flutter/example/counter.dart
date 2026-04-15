@@ -50,7 +50,7 @@ class CounterPage extends StatelessWidget {
       ),
       body: Center(
         child: DeriveBuilder(
-          derive: (sub) => sub(counterStore),
+          derive: (sub, _) => sub(counterStore),
           builder: (count) => Text(
             '$count',
             style: Theme.of(context).textTheme.displayLarge,
